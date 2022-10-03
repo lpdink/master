@@ -1,0 +1,175 @@
+\documentclass[UTF8]{article}
+
+
+% if you need to pass options to natbib，use，e.g.：
+%     \PassOptionsToPackage{numbers，compress}{natbib}
+% before loading neurips_2022
+
+
+% ready for submission
+\usepackage[final]{neurips_2022}
+
+% \PassOptionsToPackage{numbers，compress}{natbib}
+
+
+% to compile a preprint version，e.g.，for submission to arXiv，add add the
+% [preprint] option：
+%     \usepackage[preprint]{neurips_2022}
+
+
+% to compile a camera-ready version，add the [final] option，e.g.：
+%     \usepackage[final]{neurips_2022}
+
+
+% to avoid loading the natbib package，add option nonatbib：
+%    \usepackage[nonatbib]{neurips_2022}
+
+\usepackage{ctex} % support zh
+\usepackage{indentfirst} %support indent
+\usepackage[colorlinks, linkcolor=blue]{hyperref}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2，etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\setlength{\parindent}{2em}
+\title{主动容错技术FTC：一份技术报告}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors： \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So，if LaTeX puts 3 of 4
+% authors names on the first line，and the last on the second line，try using
+% \AND instead of \And before the third author name.
+
+
+\author{%
+  lpdink\thanks{本文是对<A Survey on Active Fault-Tolerant Control Systems>\cite{AlirezaAbbaspour2020ASO}的阅读报告.} \\
+  \texttt{lpdink@qq.com} \\
+  % examples of more authors
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+  \textbf{物理安全}通常指保护计算机系统免受硬件设备问题导致的系统故障的安全场景。\textbf{容错技术}被广泛应用在系统安全，物理安全，网络安全等多种场景。
+  物理安全场景下的\textbf{系统安全}，则主要指硬件设备安全问题。在物理安全场景引入容错技术，可以降低系统组件故障或不稳定性导致的系统性能下降或崩溃的可能。
+  本文选择了容错技术领域最受关注的\textbf{主动容错控制系统(Fault tolerance control system，FTC)}，抽象了面向故障场景的控制系统模型，介绍了FTC系统的核心思想及分类，讨论了\textbf{故障检测和隔离模块(Fault detection and isolation，FDI)}在FTC系统中的重要性。
+\end{abstract}
+
+
+\section{简介}
+在经典控制系统场景下，我们通常假定系统的所有组件都正常且准确地发挥工作。
+但在实际生产场景下，这种假设显然是与实情不符的：系统组件，尤其是IOT系统或分布式系统组件，常常面临着极端天气，网络通信故障，设备断电，损坏，被恶意攻击干扰或侵占等复杂情况。
+
+
+近些年来，学术界及工业界在这类物理安全场景，引入了容错技术，来提高系统的鲁棒性、健壮性、整体弹性。
+其中最重要的，也是容错系统核心的，就是容错控制系统（FTC）。
+
+
+FTC技术分为主动和被动方法，本文将专注在主动容错控制上。这项技术最早在工业界生产中使用，1991年由Stenge\cite{RobertFStengel1990IntelligentFC}等人提出最早的综述文章，从概念上明确了FTC的基本概念和人工智能技术在FTC系统中的应用。1997年Patton\cite{PATTON19971029}回顾了FTC技术的发展，并分析了FTC系统设计的关键问题。
+2011年Alwi\cite{HalimAlwi2011FaultDA}等人回顾了FTC中不同类型的故障，简要概述了故障检测和隔离技术。
+
+
+此后，在航空航天领域，发动机，光伏通信，电力系统中的FTC特化应用也被广泛研究。
+
+
+但是，此前的研究往往仅将目光放在基于硬件冗余的FTC方法上，或是单独地研究故障检测与隔离技术（FDI）并未将两者联合考虑。本篇综述联合考虑了FTC和FDI技术，将他们统一概述为构成主动FTC系统的部分。同时论述了，自从上一综述工作后，主动FTC系统领域的最新成果与进展，比较了被动式和主动式FTC系统的核心思想。讨论了FTC及FDI的分类方法，不同种类的系统或模块的核心思想和方法，以促进本领域的进一步研究和发展。
+\section{问题定义}
+FTC系统是在生产实践中被广泛应用的系统，要讨论这样的实例系统，需要首先给出实际系统的概念模型，并确定系统中关键概念的定义。
+
+
+具体来说，本节讨论故障的定义，分类与原因，并在此基础上，给出FTC系统的定义。
+\subsection{故障定义}
+\textbf{故障}定义在控制系统中，指会危及系统稳定性并降低系统性能的，与系统标定参数与状态的\emph{偏差}。系统中发生单一故障的影响，从导致性能下降到完全故障（崩溃）不等。
+
+系统故障与外部对系统的干扰不同，如果发生外部干扰，没有破坏系统内在，且系统仍然在符合设计预期地工作，并在干扰消失后，系统将重新回到正常工作状态，这一情况不构成系统故障。故障指系统不符合设计预期的工作状态，属于应该被检测并通过冗余等控制手段，消除影响的元素。
+
+干扰与模型不确定性在实际生产中不可避免地存在并经常出现，他们往往影响着系统的性能，要求系统设计者采用故障控制手段对其进行预期和管理，即系统的鲁棒性设计。而故障是超出系统鲁棒性设计范畴的要素，当故障发生时，系统的鲁棒性控制手段不再能使系统或系统部件正常工作。可见，故障不可恢复，因此需要\emph{冗余设计}。
+
+
+\subsection{故障类型与原因}
+故障因控制系统的不同组件出错而区分为不同的类型。因此，在讨论故障类型前，先抽象一个简单的现代控制系统的模型。
+
+经典控制系统是一个接收外部命令，包含控制器，执行器，设备，传感器四个组件的闭环系统。控制器接受传感器的回传信息，根据内置逻辑或传入的命令，决定对系统的控制行为，将控制命令发送给执行器。执行器接受控制命令，按照设备IO接口的协议，将命令翻译设备能理解的IO信号，以控制设备行为。设备接受行为控制命令，并开始进行工作。设备的工作结果将影响整个系统的状态，状态的变化被传感器感知并记录，回传给控制器模块，以决定下一时间步的系统决策。
+
+基于这一现代控制系统的抽象模型，我们可以给出基于组件类型的系统故障分类：
+\begin{itemize}
+  \item 设备故障：改变系统的动态IO属性，系统很大概率陷入完全不工作状态。
+  \item 传感器故障：执行状态不受影响，但传感器读数存在严重错误，影响控制器决策，系统行为完全不正常。
+  \item 执行器故障：执行状态不受影响，但设备接受的控制信号被中断或篡改。
+  
+\end{itemize}
+造成这些故障的原因颇多，包括物理域的剧烈震荡，连接不当，电路短路; 恶意攻击者的虚假信号注入; 机械阻塞; 参数值突变等等。
+\subsection{FTC系统的定义}
+\textbf{FTC}是自动消弭系统组件中的故障影响，保持系统稳定性及所需的整体性能水平的\emph{容错控制系统}，旨在提⾼控制系统对故障场景的安全性和可靠性。
+基于对故障信息的依赖，FTC系统可以分为两⼤类：被动FTC和主动FTC。被动 FTC不依赖于错误信息来控制系统，与系统鲁棒控制密切相关，其核心在于，使用冗余应对系统的预定义故障。
+
+与被动FTC系统相⽐，主动FTC系统基于系统中发⽣的故障执⾏。在此类控制系统中，FDI单元⽤于查找故障位置并测量其⼤⼩；然后，监控控制器决定如何修改控制结构和参数以消弭系统中发⽣的故障。可能采取的行为包括重新配置，管理冗余，和分析冗余变化。
+
+\section{主动FTC与FDI}
+\subsection{主动故障控制FTC}
+如上节所述，主动FTC使⽤检测技术来发现故障，然后，监控系统将决定如何修改控制结构和参数以消弭系统中故障的影响，因此主动式 FTC 设计具有三个关键步骤：检测、监督、控制。
+基于三个关键步骤，主动FTC的设计要求：
+\begin{itemize}
+  \item \textbf{检测高准确性}：FTC系统本身是用于系统的故障控制，以增强系统鲁棒性的，但由于主动FTC有自己额外的控制器，其行为会影响系统的行为。故在主动FTC检测单元不准确时，其采取的故障控制行为，反而有可能危及系统的稳定性。因此，主动FTC的检测单元被要求具备更高的准确性，并采取保守策略。
+  \item \textbf{监督鲁棒性}：故障的发生往往是因为系统遭遇了较大的外部侵害，包括环境和物理侵害，主动FTC系统的控制器，被要求在遭遇这些极端状态时仍能正常工作，常见情况是，获得了不弯曲的故障检测信息，以保证其调控冗余，消弭故障的功能正常作用。
+  \item \textbf{控制及时性}：故障恢复所花费的时间应该少于恢复的可⽤时间。换⾔之，故障弥补行为应该⾜够迅速，以保证系统稳定性和性能。
+\end{itemize}
+基于上述要求，今年来FTC对故障弥补的策略，可以分为以下几种：
+\begin{itemize}
+  \item \textbf{基于开关的}\cite{LingliLu2011SupervisoryFT}：提供一组预定义的候选控制器，常态情况下，系统在一般控制器的控制下工作，当系统发生故障时，切换到故障控制器下工作。
+  \item \textbf{层次结构的}：将FDI与FTC模块进行了整合，在检测和隔离系统控制后，控制器可以通过自适应策略\cite{XiaodongZhang2010AdaptiveFD}自行重新配置。
+  \item \textbf{Safe Parking}\cite{RahulGandhi2009ASF}：核心思想是，在系统出现故障时，将系统维持在恰当的临时平衡点，保证系统的临时正常工作，防止正反馈循环导致的进一步损害。直到主动控制器将系统调整回标定状态。
+  \item \textbf{分析反馈的}\cite{AlirezaAbbaspour2019AnAR}：这一方法强烈依赖精确的，延迟极小的FDI信息。控制系统在FDI与故障控制器之间构成第二个控制闭环，根据FDI实时信息，不断调整系统状态，直到到达标定状态。
+\end{itemize}
+\subsection{故障检测FDI}
+如上节所述，主动FTC的性能与鲁棒性强烈依赖着FDI模块的性能与准确性，因此，具有在线故障检测和隔离能⼒的准确FDI设计是主动FTC设计的必要条件。
+
+FDI模块本质上是一个观察器，用于估计系统的状态和输出，需要综合考虑系统状态，控制输入，输出，量化执行器、设备和传感器故障，未知干扰及不确定性。
+FDI根据上一时间步的状态，及本时间步的输入，估计下一时间步的输出，当期望预测与下一时间步的输出偏差过大时，认为系统处于故障状态。
+
+FDI是一个时序的状态预测器，其采用的方法，通常包括基于模型的\cite{DonaldLSimon2013AircraftEG}，基于知识的\cite{AchmadWidodo2007SupportVM}，和模型-知识的组合方法\cite{HeidarAliTalebi2009ARN}三种。
+
+值得注意的是，在控制领域的模型，指经典的抽象真实问题为数学模型，再加以数学方法的控制；而基于知识的方法，则指利用机器学习（如SVM）或深度学习方法，采集历史数据，训练模型完成预测。
+
+与人工智能方法的利弊一致，FDI中基于模型的方法，需要根据特定的场景，决定应用的具体数学模型，需要较强的专家领域知识。而基于知识的方法，则需要大量的历史数据，以训练机器学习或深度学习模型。模型-知识的混合方法则更加灵活，允许FDI考虑机器学习模型难以学习到的特定少数情况。
+\section{结论}
+本篇综述对主动容错控制系统近些年的成果和进展做以报告，给出了故障的定义，及在故障控制场景下，简单控制模型的抽象。联合分析了FTC系统与FDI模块，并对FTC系统和FDI模块的分类做以说明，分析了不同类型系统或模块的主要思想及优缺点，体现了本文的技术报告性质。
+\bibliographystyle{unsrt}
+\bibliography{ref}
+
+\end{document}
+
