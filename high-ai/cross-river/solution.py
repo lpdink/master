@@ -116,12 +116,14 @@ def main():
     def trackback(now_state, path, rst):
         if "0 0 0 0 3 3" in father2child[now_state]:
             path.append("0 0 0 0 3 3")
-            rst.append(copy.deepcopy(path))
+            rst.append(path[:])
+            # 如果递归体内能确保不修改传入的可变对象，则外层就无需deepcopy
+            path.pop()
             return
         for sub_state in father2child[now_state]:
             if sub_state not in path:
-                path.append(copy.deepcopy(sub_state))
-                trackback(sub_state, copy.deepcopy(path), rst)
+                path.append(sub_state)
+                trackback(sub_state, path, rst)
                 path.pop()
     rst = []
     begin_state = "3 3 0 0 0 0"
