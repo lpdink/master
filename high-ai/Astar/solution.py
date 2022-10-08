@@ -51,10 +51,10 @@ class Node:
             rst.append(Node(self.x-1, self.y, self, self.depth+1, "↑"))
         if self.y>=1 and self._pos_is_valid(self.x, self.y-1):
             rst.append(Node(self.x, self.y-1, self, self.depth+1,"←"))
-        if self.x<len(SPACE)-1 and self._pos_is_valid(self.x+1, self.y):
-            rst.append(Node(self.x+1, self.y, self, self.depth+1,"↓"))
         if self.y<len(SPACE[0])-1 and self._pos_is_valid(self.x, self.y+1):
             rst.append(Node(self.x, self.y+1, self, self.depth+1,"→"))
+        if self.x<len(SPACE)-1 and self._pos_is_valid(self.x+1, self.y):
+            rst.append(Node(self.x+1, self.y, self, self.depth+1,"↓"))
         return rst
 
     def __eq__(self, __o: object) -> bool:
@@ -83,11 +83,10 @@ def astar():
         now:Node = open.get()
         if now==end:
             return now
-        if now in closed:
-            continue
         # 考察now节点，未考察的子节点加入open表中
         for sub_node in now.transfer():
-            open.put(sub_node)
+            if sub_node not in closed:
+                open.put(sub_node)
         closed.add(now)
     else:
         print("can't find solution, check the space.")
