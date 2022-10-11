@@ -16,16 +16,18 @@ async def spin(msg):
         status = f"{char} {msg}"
         write(status)
         flush()
-        write("\x08"*len(status))
+        write("\x08" * len(status))
         try:
             await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             print("error is catched")
             break
 
+
 async def slow_func():
     await asyncio.sleep(3)
     return 42
+
 
 async def supervisor():
     spinner = asyncio.create_task(spin("waiting..."))
@@ -35,7 +37,7 @@ async def supervisor():
     return result
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     # asyncio.run(supervisor())
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(supervisor())

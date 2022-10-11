@@ -1,29 +1,34 @@
-'''
+"""
 本例使用dis.dis查看函数的字节码，
 以说明解释器是如何理解高层语句的。
 dis标准库的文档： 
 https://docs.python.org/3/library/dis.html
 是开始理解Cpython的很好的切入点。
 
-'''
+"""
 # 有趣的是，本例一开始文件被命名为dis.py，这显然覆盖了标准库的import。
 # 因此出现了循环import，我还思考了半天为什么...
 import dis
+
 global_num = 10
+
+
 def f1(a):
     print(a)
     print(global_num)
 
+
 def f2(a):
     print(a)
     print(global_num)
-    global_num=2
+    global_num = 2
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     dis.dis(f1)
-    print("="*20)
+    print("=" * 20)
     dis.dis(f2)
-    '''
+    """
 10           0 LOAD_GLOBAL              0 (print)
             2 LOAD_FAST                0 (a)
             4 CALL_FUNCTION            1
@@ -52,8 +57,8 @@ if __name__=='__main__':
              22 RETURN_VALUE
     
     
-    '''
-    '''
+    """
+    """
     第29和第41很好地说明了python对函数的某种编译行为。
     对于函数体来说，后面的语句是可能影响前面的语句的。（因为编译发生了）
-    '''
+    """

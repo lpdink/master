@@ -3,6 +3,7 @@
 # weakref.WeakValueDictionary 的value是弱引用，需要保证value能被弱引用
 import weakref
 
+
 class Color:
     def __init__(self, color) -> None:
         self.color = color
@@ -10,10 +11,15 @@ class Color:
     def __repr__(self) -> str:
         return self.color
 
+
 if __name__ == "__main__":
 
-    fruit2id = {"apple": Color("red"), "banana":Color("yellow"),
-                   "peer": Color("yellow"), "peach": Color("pink")}
+    fruit2id = {
+        "apple": Color("red"),
+        "banana": Color("yellow"),
+        "peer": Color("yellow"),
+        "peach": Color("pink"),
+    }
     stock = weakref.WeakValueDictionary()
     for key, value in fruit2id.items():
         stock[key] = value

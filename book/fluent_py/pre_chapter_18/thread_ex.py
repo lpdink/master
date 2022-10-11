@@ -16,30 +16,34 @@ import sys
 class Signal:
     go = True
 
+
 def spin(msg, signal):
     write, flush = sys.stdout.write, sys.stdout.flush
     for char in itertools.cycle("|/-\\"):
-        status = char+" "+msg
+        status = char + " " + msg
         write(status)
         flush()
-        write("\x08"*len(status))# 退格
+        write("\x08" * len(status))  # 退格
         time.sleep(0.1)
         if not signal.go:
             break
-    write(" "*len(status)+"\x08"*len(status))
+    write(" " * len(status) + "\x08" * len(status))
+
 
 def slow_func():
     time.sleep(5)
     return 42
 
+
 def supervisor():
     signal = Signal()
-    spinner = threading.Thread(target=spin, args=("waiting...",signal))
+    spinner = threading.Thread(target=spin, args=("waiting...", signal))
     spinner.start()
     slow_func()
     signal.go = False
     spinner.join()
     print("waiting done!")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     supervisor()
