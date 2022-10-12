@@ -29,12 +29,23 @@ def read_space():
 SPACE, START, END = read_space()
 class Node:
     def __init__(self, x, y, father=None, depth = 0, show_char="S") -> None:
-        self.x = x
-        self.y = y
+        self._x = x
+        self._y = y
         self.depth = depth
         self.cost = self.get_cost()
         self.father = father
         self.show_char = show_char
+
+    # 添加x和y的getter，以向User传递不希望_x和_y被修改的信息。
+    # _x与_y不应该被修改，因为对象的__hash__依赖于这两个属性
+    # 但是可hash的对象，一经创建，其hash绝不应该变化.
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
 
     def _hmd(self, dst):
         return abs(self.x - dst[0]) + abs(self.y - dst[1])
@@ -69,8 +80,14 @@ class Node:
     def __repr__(self) -> str:
         return f"cost:{self.cost} x:{self.x} y:{self.y} father:{self.father}"
 
-    # 如果y在1e9数量级，本哈希函数是可能碰撞的，故不考虑那么大的迷宫
     def __hash__(self) -> int:
+        # ^: 异或
+        # 这一哈希函数也是可用的。但交换xy的顺序会产生相同的哈希。
+        # 不同对象有相同的哈希，即产生哈希碰撞，会导致性能的降低，但不导致两个对象的id相同，或是eq。
+        # 因而也不会在字典中被认为是同一个key。
+        # return hash(self.x)^hash(self.y)
+        # 一个更好的方案是：
+        # return hash(tuple(self.x, self.y))
         return int(self.x*1e9+self.y)
 
 
