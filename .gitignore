@@ -1,2 +1,10 @@
 __pycache__
 *.gz
+*.aux
+*.log
+*.bbl
+*.blg
+*.fls
+*.out
+*.fdb_latexmk
+ELASTICLAVE
