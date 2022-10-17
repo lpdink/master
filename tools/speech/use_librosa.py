@@ -87,16 +87,71 @@ def hamming(data, M):
     Returns:
         List[float]: 加窗结果
     """
-    # data.shape=(78.2048),
+    # data.shape=(78, 2048),
     hanwindow = np.hamming(M)
     return data * hanwindow
 
 
+def _stft(audio, n_fft=2048, hop_length=512, window="hann"):
+    # 短时傅里叶变换
+    # zz = librosa.stft(y, n_fft=2048, hop_length=None, win_length=None, window='hann', center=True, pad_mode='reflect')
+    # librosa的stft是自带加窗的
+    # stfted.shape==(1025, 82) 这里因为填充信号，所以帧数多一些，shape=((1+n_fft/2), t)
+    # 每帧有1025个值，每个值都是一个复数,如:0.0103363 +0.00675756j，这代表该点的频率值。
+    # 使用复数表示频率，需要参考极坐标
+    return librosa.stft(audio, n_fft=n_fft, hop_length=hop_length, window=window)
+
+
+def _magphase(stfted, power):
+    """取得stft的幅值和相位矩阵
+
+    Args:
+        stfted (List[List[complex]]): stft结果
+        power (int): 幅度谱的指数，1代表能量，2代表功率...
+
+    Returns:
+        D_mag: 幅值矩阵
+        D_phase: 相位矩阵
+        两个矩阵的shape与stfted一致，但并非简单的6.2708445e-05-5.29952449e-05j的实数和虚数部分分离
+        D_mag其实是复数的模矩阵，phase = np.exp(1j * np.angle(D(F, T))) 
+    """
+    D_mag, D_phase = librosa.magphase(stfted, power=power)
+    return D_mag, D_phase
+
+
+def _istft(stfted, hop_length=512, win_length=2048, window="hann", center=True):
+    """逆stft变换，一般不需要额外指定参数，librosa可以从stfted中计算出hop和win_length.
+        先进行stft，再做istft，会丢失一些信息，采样点数量也会变化，但十分小。
+    Args:
+        stfted (List[List[complex]]): 经过stft变换后的矩阵
+        hop_length (int, optional): 帧移. Defaults to 512.
+        win_length (int, optional): 窗口大小. Defaults to 2048.
+        window (str, optional): 窗口类型. Defaults to 'hann'.
+        center (bool, optional): 与进行stft变换时保持一致. Defaults to True.
+
+    Returns:
+        audio: 时域信号
+    """
+    return librosa.istft(
+        stfted,
+        hop_length=hop_length,
+        win_length=win_length,
+        window=window,
+        center=center,
+    )
+
+
 if __name__ == "__main__":
-    data, duration, sr = read_wav("./resources/waves/test.wav")
+    data, duration, sr = read_wav(
+        "../../book/pytorch_introduction/chapter1/resources/waves/test.wav"
+    )
     # data:<class 'numpy.ndarray'>, (41885,) duration=1.899546485260771(float), sr=22050(float)
-    data = preemphasis(data)
-    frame_length, hop_size = 2048, 512
-    frames = framing(data, frame_length, hop_size)
-    windowed = hamming(frames, frame_length)
+    # data = preemphasis(data)
+    # frame_length, hop_size = 2048, 512
+    # frames = framing(data, frame_length, hop_size)
+    # windowed = hamming(frames, frame_length)
+
+    stfted = librosa.stft(data, n_fft=2048, hop_length=512, window="hann")
+    D_mag, D_phase = librosa.magphase(stfted, power=1)
+    istfted = librosa.istft(stfted)
     breakpoint()
