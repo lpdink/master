@@ -4,6 +4,7 @@ Description: Astar算法解决迷宫问题
 from queue import PriorityQueue
 from copy import deepcopy
 
+
 def read_space():
     with open("space.txt", "r") as file:
         lines = file.readlines()
@@ -27,8 +28,10 @@ def read_space():
 
 
 SPACE, START, END = read_space()
+
+
 class Node:
-    def __init__(self, x, y, father=None, depth = 0, show_char="S") -> None:
+    def __init__(self, x, y, father=None, depth=0, show_char="S") -> None:
         self._x = x
         self._y = y
         self.depth = depth
@@ -54,18 +57,18 @@ class Node:
         return 2 * self._hmd(END) + self._hmd(START) + self.depth
 
     def _pos_is_valid(self, x, y):
-        return not SPACE[x][y]=="1"
+        return not SPACE[x][y] == "1"
 
     def transfer(self):
         rst = []
-        if self.x>=1 and self._pos_is_valid(self.x-1, self.y):
-            rst.append(Node(self.x-1, self.y, self, self.depth+1, "↑"))
-        if self.y>=1 and self._pos_is_valid(self.x, self.y-1):
-            rst.append(Node(self.x, self.y-1, self, self.depth+1,"←"))
-        if self.y<len(SPACE[0])-1 and self._pos_is_valid(self.x, self.y+1):
-            rst.append(Node(self.x, self.y+1, self, self.depth+1,"→"))
-        if self.x<len(SPACE)-1 and self._pos_is_valid(self.x+1, self.y):
-            rst.append(Node(self.x+1, self.y, self, self.depth+1,"↓"))
+        if self.x >= 1 and self._pos_is_valid(self.x - 1, self.y):
+            rst.append(Node(self.x - 1, self.y, self, self.depth + 1, "↑"))
+        if self.y >= 1 and self._pos_is_valid(self.x, self.y - 1):
+            rst.append(Node(self.x, self.y - 1, self, self.depth + 1, "←"))
+        if self.y < len(SPACE[0]) - 1 and self._pos_is_valid(self.x, self.y + 1):
+            rst.append(Node(self.x, self.y + 1, self, self.depth + 1, "→"))
+        if self.x < len(SPACE) - 1 and self._pos_is_valid(self.x + 1, self.y):
+            rst.append(Node(self.x + 1, self.y, self, self.depth + 1, "↓"))
         return rst
 
     def __eq__(self, __o: object) -> bool:
@@ -88,7 +91,7 @@ class Node:
         # return hash(self.x)^hash(self.y)
         # 一个更好的方案是：
         # return hash(tuple(self.x, self.y))
-        return int(self.x*1e9+self.y)
+        return int(self.x * 1e9 + self.y)
 
 
 def astar():
@@ -97,8 +100,8 @@ def astar():
     open = PriorityQueue()
     open.put(start)
     while not open.empty():
-        now:Node = open.get()
-        if now==end:
+        now: Node = open.get()
+        if now == end:
             return now
         # 考察now节点，未考察的子节点加入open表中
         for sub_node in now.transfer():
@@ -109,7 +112,8 @@ def astar():
         print("can't find solution, check the space.")
         exit()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     end = astar()
     path = []
     tmp = end
@@ -119,9 +123,6 @@ if __name__=="__main__":
     # 根据path修改SPACE
     ret = deepcopy(SPACE)
     for node in path:
-        ret[node.x][node.y]=node.show_char
+        ret[node.x][node.y] = node.show_char
     for line in ret:
         print(" ".join(line))
-
-
-        

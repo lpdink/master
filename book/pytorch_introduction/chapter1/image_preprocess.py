@@ -15,7 +15,7 @@ FILTER = Image.NEAREST
 
 # 是否进行增强
 ENHANCE = True
-RANDOM_RANGE = 0.5 # 增强10%
+RANDOM_RANGE = 0.5  # 增强10%
 
 
 def resize_jpgs(dir_path=RAW_PATH):
@@ -35,11 +35,13 @@ def resize_jpgs(dir_path=RAW_PATH):
             for w in range(width):
                 for h in range(height):
                     pix_h, pix_s, pix_v = im_hsv.getpixel((w, h))
-                    pixel_map[w, h] = (int(min(pix_h*(1+RANDOM_RANGE), 255)), 
-                                        int(min(pix_s*(1+RANDOM_RANGE), 255)),
-                                        int(min(pix_v*(1+RANDOM_RANGE), 255)))
+                    pixel_map[w, h] = (
+                        int(min(pix_h * (1 + RANDOM_RANGE), 255)),
+                        int(min(pix_s * (1 + RANDOM_RANGE), 255)),
+                        int(min(pix_v * (1 + RANDOM_RANGE), 255)),
+                    )
             im = im_hsv.convert("RGB")
-                    
+
         """
         在opencv中的范围如下，但在PIL中，H似乎也是255的。
         H = [0,179]

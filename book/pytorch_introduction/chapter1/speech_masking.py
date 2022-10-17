@@ -6,6 +6,7 @@ from scipy import signal
 import scipy
 import librosa
 
+
 def compute_PSD_matrix(audio, window_size):
     """
 	First, perform STFT.
@@ -13,21 +14,29 @@ def compute_PSD_matrix(audio, window_size):
 	Last, normalize PSD.
     """
     breakpoint()
-    win = np.sqrt(8.0/3.) * librosa.core.stft(audio, center=False)
+    win = np.sqrt(8.0 / 3.0) * librosa.core.stft(audio, center=False)
     z = abs(win / window_size)
-    psd_max = np.max(z*z)
+    psd_max = np.max(z * z)
     psd = 10 * np.log10(z * z + 0.0000000000000000001)
     PSD = 96 - np.max(psd) + psd
-    return PSD, psd_max   
+    return PSD, psd_max
+
 
 def Bark(f):
     """returns the bark-scale value for input frequency f (in Hz)"""
-    return 13*np.arctan(0.00076*f) + 3.5*np.arctan(pow(f/7500.0, 2))
+    return 13 * np.arctan(0.00076 * f) + 3.5 * np.arctan(pow(f / 7500.0, 2))
+
 
 def quiet(f):
-     """returns threshold in quiet measured in SPL at frequency f with an offset 12(in Hz)"""
-     thresh = 3.64*pow(f*0.001,-0.8) - 6.5*np.exp(-0.6*pow(0.001*f-3.3,2)) + 0.001*pow(0.001*f,4) - 12
-     return thresh
+    """returns threshold in quiet measured in SPL at frequency f with an offset 12(in Hz)"""
+    thresh = (
+        3.64 * pow(f * 0.001, -0.8)
+        - 6.5 * np.exp(-0.6 * pow(0.001 * f - 3.3, 2))
+        + 0.001 * pow(0.001 * f, 4)
+        - 12
+    )
+    return thresh
+
 
 def two_slops(bark_psd, delta_TM, bark_maskee):
     """
@@ -40,11 +49,14 @@ def two_slops(bark_psd, delta_TM, bark_maskee):
         zero_index = np.argmax(dz > 0)
         sf = np.zeros(len(dz))
         sf[:zero_index] = 27 * dz[:zero_index]
-        sf[zero_index:] = (-27 + 0.37 * max(bark_psd[tone_mask, 1] - 40, 0)) * dz[zero_index:] 
+        sf[zero_index:] = (-27 + 0.37 * max(bark_psd[tone_mask, 1] - 40, 0)) * dz[
+            zero_index:
+        ]
         T = bark_psd[tone_mask, 1] + delta_TM[tone_mask] + sf
         Ts.append(T)
     return Ts
-    
+
+
 def compute_th(PSD, barks, ATH, freqs):
     """ returns the global masking threshold
     """
@@ -53,11 +65,10 @@ def compute_th(PSD, barks, ATH, freqs):
     length = len(PSD)
     # 用于计算极值点，如果是单调的，返回为空数组。
     masker_index = signal.argrelextrema(PSD, np.greater)[0]
-    if masker_index.size==0:
+    if masker_index.size == 0:
         return None
     # breakpoint()
-    
-    
+
     # delete the boundary of maskers for smoothing
     if 0 in masker_index:
         masker_index = np.delete(0)
@@ -66,12 +77,12 @@ def compute_th(PSD, barks, ATH, freqs):
     num_local_max = len(masker_index)
 
     # treat all the maskers as tonal (conservative way)
-    # smooth the PSD 
-    p_k = pow(10, PSD[masker_index]/10.)    
-    p_k_prev = pow(10, PSD[masker_index - 1]/10.)
-    p_k_post = pow(10, PSD[masker_index + 1]/10.)
+    # smooth the PSD
+    p_k = pow(10, PSD[masker_index] / 10.0)
+    p_k_prev = pow(10, PSD[masker_index - 1] / 10.0)
+    p_k_post = pow(10, PSD[masker_index + 1] / 10.0)
     P_TM = 10 * np.log10(p_k_prev + p_k + p_k_post)
-    
+
     # bark_psd: the first column bark, the second column: P_TM, the third column: the index of points
     _BARK = 0
     _PSD = 1
@@ -81,65 +92,68 @@ def compute_th(PSD, barks, ATH, freqs):
     bark_psd[:, _BARK] = barks[masker_index]
     bark_psd[:, _PSD] = P_TM
     bark_psd[:, _INDEX] = masker_index
-    
-    # delete the masker that doesn't have the highest PSD within 0.5 Bark around its frequency 
+
+    # delete the masker that doesn't have the highest PSD within 0.5 Bark around its frequency
     for i in range(num_local_max):
         next = i + 1
         if next >= bark_psd.shape[0]:
             break
-            
-        while bark_psd[next, _BARK] - bark_psd[i, _BARK]  < 0.5:
+
+        while bark_psd[next, _BARK] - bark_psd[i, _BARK] < 0.5:
             # masker must be higher than quiet threshold
             if quiet(freqs[int(bark_psd[i, _INDEX])]) > bark_psd[i, _PSD]:
                 bark_psd = np.delete(bark_psd, (i), axis=0)
             if next == bark_psd.shape[0]:
                 break
-                
+
             if bark_psd[i, _PSD] < bark_psd[next, _PSD]:
                 bark_psd = np.delete(bark_psd, (i), axis=0)
             else:
                 bark_psd = np.delete(bark_psd, (next), axis=0)
             if next == bark_psd.shape[0]:
-                break        
-    
+                break
+
     # compute the individual masking threshold
-    delta_TM = 1 * (-6.025  -0.275 * bark_psd[:, 0])
-    Ts = two_slops(bark_psd, delta_TM, barks) 
+    delta_TM = 1 * (-6.025 - 0.275 * bark_psd[:, 0])
+    Ts = two_slops(bark_psd, delta_TM, barks)
     Ts = np.array(Ts)
-    
+
     # compute the global masking threshold
-    theta_x = np.sum(pow(10, Ts/10.), axis=0) + pow(10, ATH/10.) 
- 
+    theta_x = np.sum(pow(10, Ts / 10.0), axis=0) + pow(10, ATH / 10.0)
+
     return theta_x
+
 
 def generate_th(audio, fs, window_size=2048):
     """
 	returns the masking threshold theta_xs and the max psd of the audio
     """
-    PSD, psd_max= compute_PSD_matrix(audio , window_size)  
+    PSD, psd_max = compute_PSD_matrix(audio, window_size)
     freqs = librosa.core.fft_frequencies(sr=fs, n_fft=window_size)
     barks = Bark(freqs)
     # breakpoint()
 
-    # compute the quiet threshold 
+    # compute the quiet threshold
     ATH = np.zeros(len(barks)) - np.inf
     bark_ind = np.argmax(barks > 1)
     ATH[bark_ind:] = quiet(freqs[bark_ind:])
 
-    # compute the global masking threshold theta_xs 
+    # compute the global masking threshold theta_xs
     theta_xs = []
     # compute the global masking threshold in each window
     breakpoint()
     for i in range(PSD.shape[1]):
-        tmp = compute_th(PSD[:,i], barks, ATH, freqs)
+        tmp = compute_th(PSD[:, i], barks, ATH, freqs)
         if tmp is not None:
             theta_xs.append(tmp)
     theta_xs = np.array(theta_xs)
     return theta_xs, psd_max
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     sr, audio = wav.read("./resources/waves/test.wav")
     from use_librosa import hamming, framing
+
     audio = framing(audio)
     audio = hamming(audio, 2048)
     theta_xs, psd_max = generate_th(audio, sr)

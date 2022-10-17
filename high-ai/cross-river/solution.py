@@ -12,7 +12,7 @@ class LocalState:
 
     @property
     def num(self):
-        return self.wild_num+self.miss_num
+        return self.wild_num + self.miss_num
 
 
 class GlobalState:
@@ -38,9 +38,17 @@ class GlobalState:
             return False
         if self.end.wild_num > self.end.miss_num and self.end.miss_num > 0:
             return False
-        if self.origin.wild_num+self.boot.wild_num > self.origin.miss_num+self.boot.miss_num and (self.origin.miss_num > 0 or self.boot.miss_num > 0):
+        if (
+            self.origin.wild_num + self.boot.wild_num
+            > self.origin.miss_num + self.boot.miss_num
+            and (self.origin.miss_num > 0 or self.boot.miss_num > 0)
+        ):
             return False
-        if self.end.wild_num+self.boot.wild_num > self.end.miss_num+self.boot.miss_num and (self.end.miss_num > 0 or self.boot.miss_num > 0):
+        if (
+            self.end.wild_num + self.boot.wild_num
+            > self.end.miss_num + self.boot.miss_num
+            and (self.end.miss_num > 0 or self.boot.miss_num > 0)
+        ):
             return False
         # 没有人开船，且不到达终止状态
         if self.origin.num != 0 and self.boot.num == 0:
@@ -86,7 +94,10 @@ class GlobalState:
                 new_state.boot.miss_num += 2
                 rst.append(new_state)
             # 上一个野人和一个传教士
-            if getattr(tmp_state, attr).wild_num > 0 and getattr(tmp_state, attr).miss_num > 0:
+            if (
+                getattr(tmp_state, attr).wild_num > 0
+                and getattr(tmp_state, attr).miss_num > 0
+            ):
                 new_state = copy.deepcopy(tmp_state)
                 getattr(new_state, attr).wild_num -= 1
                 getattr(new_state, attr).miss_num -= 1
@@ -94,6 +105,7 @@ class GlobalState:
                 new_state.boot.miss_num += 1
                 rst.append(new_state)
             return rst
+
         rst = side_transfer(self, "origin") + side_transfer(self, "end")
         return [state for state in rst if state.is_valid()]
 
@@ -108,7 +120,11 @@ def main():
         childs = now_state.transfer()
         father2child[str(now_state)] = list({str(child) for child in childs})
         for state in childs:
-            if state not in visited_state and state not in to_visit_state and state != str(now_state):
+            if (
+                state not in visited_state
+                and state not in to_visit_state
+                and state != str(now_state)
+            ):
                 to_visit_state.append(state)
         visited_state.append(now_state)
     # 回溯法
@@ -125,6 +141,7 @@ def main():
                 path.append(sub_state)
                 trackback(sub_state, path, rst)
                 path.pop()
+
     rst = []
     begin_state = "3 3 0 0 0 0"
     path = [begin_state]
@@ -141,11 +158,14 @@ def main():
         if len(path) == min_length:
             min_length_answers.append(path)
             print("\n".join(path))
-            print("="*10)
+            print("=" * 10)
 
     # 组织答案
-    answer = {"min_length_answers": min_length_answers,
-              "transfer_space": father2child, "all_no_repeat_path_answers": rst}
+    answer = {
+        "min_length_answers": min_length_answers,
+        "transfer_space": father2child,
+        "all_no_repeat_path_answers": rst,
+    }
     with open("./space.json", "w", encoding="utf-8") as file:
         json.dump(answer, file, indent=4)
 
