@@ -7,4 +7,6 @@ __pycache__
 *.fls
 *.out
 *.fdb_latexmk
+*.h5
+*.wav
 ELASTICLAVE

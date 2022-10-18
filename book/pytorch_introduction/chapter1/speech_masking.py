@@ -5,6 +5,7 @@ from scipy.fftpack import ifft
 from scipy import signal
 import scipy
 import librosa
+import soundfile
 
 
 def compute_PSD_matrix(audio, window_size):
@@ -13,13 +14,14 @@ def compute_PSD_matrix(audio, window_size):
 	Then, compute the PSD.
 	Last, normalize PSD.
     """
-    breakpoint()
     win = np.sqrt(8.0 / 3.0) * librosa.core.stft(audio, center=False)
     z = abs(win / window_size)
     psd_max = np.max(z * z)
     psd = 10 * np.log10(z * z + 0.0000000000000000001)
-    PSD = 96 - np.max(psd) + psd
-    return PSD, psd_max
+    maxk = np.max(psd)
+    # breakpoint()
+    PSD = 96 - maxk + psd
+    return PSD, psd_max, maxk
 
 
 def Bark(f):
@@ -65,9 +67,8 @@ def compute_th(PSD, barks, ATH, freqs):
     length = len(PSD)
     # 用于计算极值点，如果是单调的，返回为空数组。
     masker_index = signal.argrelextrema(PSD, np.greater)[0]
-    if masker_index.size == 0:
-        return None
-    # breakpoint()
+    # if masker_index.size == 0:
+    #     return None
 
     # delete the boundary of maskers for smoothing
     if 0 in masker_index:
@@ -87,7 +88,6 @@ def compute_th(PSD, barks, ATH, freqs):
     _BARK = 0
     _PSD = 1
     _INDEX = 2
-    # breakpoint()
     bark_psd = np.zeros([num_local_max, 3])
     bark_psd[:, _BARK] = barks[masker_index]
     bark_psd[:, _PSD] = P_TM
@@ -120,7 +120,7 @@ def compute_th(PSD, barks, ATH, freqs):
 
     # compute the global masking threshold
     theta_x = np.sum(pow(10, Ts / 10.0), axis=0) + pow(10, ATH / 10.0)
-
+    theta_x = 10*np.log10(theta_x)
     return theta_x
 
 
@@ -128,10 +128,9 @@ def generate_th(audio, fs, window_size=2048):
     """
 	returns the masking threshold theta_xs and the max psd of the audio
     """
-    PSD, psd_max = compute_PSD_matrix(audio, window_size)
+    PSD, psd_max, maxk = compute_PSD_matrix(audio, window_size)
     freqs = librosa.core.fft_frequencies(sr=fs, n_fft=window_size)
     barks = Bark(freqs)
-    # breakpoint()
 
     # compute the quiet threshold
     ATH = np.zeros(len(barks)) - np.inf
@@ -141,20 +140,68 @@ def generate_th(audio, fs, window_size=2048):
     # compute the global masking threshold theta_xs
     theta_xs = []
     # compute the global masking threshold in each window
-    breakpoint()
+    # PSD:[1025, 78],1025由stft产生，78应该是帧数。
+    # 本循环遍历所有帧
     for i in range(PSD.shape[1]):
         tmp = compute_th(PSD[:, i], barks, ATH, freqs)
-        if tmp is not None:
-            theta_xs.append(tmp)
+        theta_xs.append(tmp)
     theta_xs = np.array(theta_xs)
-    return theta_xs, psd_max
+    return theta_xs, psd_max, maxk
+
+def get_noise_s(theta_xs, maxk, N):
+    # s^2 <=N^2*10^((theta_xs-96+maxk)/10)
+    rst = theta_xs-96+maxk
+    rst = rst/10
+    rst = np.power(10, rst)*N*N
+    # rst = np.sqrt(rst)
+    return rst
+# a*a+b*b=s*s
+# s*s*0.6=a*a
+# a = sqrt(s^2*t)
+def generate_noise(noise_s, a=1):
+    rand=np.random.uniform(size=noise_s.shape)
+    noise_s=noise_s*a*a
+    real = np.sqrt(rand*noise_s)
+    unreal = np.sqrt((1-rand)*noise_s)*1j
+    noise_spec = (real+unreal).T
+    rst = librosa.istft(noise_spec, center=False)
+    # return noise_spec
+    return rst
 
 
 if __name__ == "__main__":
     sr, audio = wav.read("./resources/waves/test.wav")
-    from use_librosa import hamming, framing
+    audio = audio.astype(np.float32)
+    # librosa的stft会帮你分帧和加窗，故不要自己做。
+    # from use_librosa import hamming, framing
+    stfted = librosa.stft(audio, center=False)
+    # audio = framing(audio)
+    # audio = hamming(audio, 2048)
+    theta_xs, psd_max, maxk = generate_th(audio, sr)
+    noise_s = get_noise_s(theta_xs, maxk, theta_xs.shape[0])
+    # noise_spec = generate_noise(noise_s)
+    noise = generate_noise(noise_s)
+    noise_audio = librosa.istft(stfted, center=False)+noise
+    istfted = librosa.istft(stfted, center=False).astype(np.int16)
+    noise_audio = noise_audio.astype(np.int16)
+    # breakpoint()
+    # 叠加
+    # noise_audio_spec = stfted+noise_spec
+    # 转时域, 记得一定要转int16!!!
+    # noise_audio = librosa.istft(noise_audio_spec, center=False).astype(np.int16)
+    soundfile.write("noise_audio_handle.wav",noise_audio[512:][:-512],sr)
+    soundfile.write("raw_handle.wav", istfted[512:][:-512], sr)
+    # breakpoint()
 
-    audio = framing(audio)
-    audio = hamming(audio, 2048)
-    theta_xs, psd_max = generate_th(audio, sr)
-    breakpoint()
+"""
+log10(100)=2
+添加扰动的范围：
+96-maxk+p$ <= theta_xs
+p$<=theta_xs-96+maxk
+log10S<=(theta_xs-96+maxk)/10
+S<=10^((theta_xs-96+maxk)/10)
+s^2 <=N^2*10^((theta_xs-96+maxk)/10)
+
+
+
+"""
