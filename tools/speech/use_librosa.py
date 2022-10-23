@@ -3,7 +3,9 @@ import numpy as np
 from copy import deepcopy
 from collections.abc import Container
 
-
+"""
+预加重，分帧，加窗，
+"""
 def read_wav(file_name):
     """用librosa读取wav文件，返回数据，采样率和duration
 
@@ -24,6 +26,9 @@ def read_wav(file_name):
 
 def preemphasis(data, a=0.98):
     """预加重，公式:s`(n)=s(n)-a*s(n-1)  a≈0.98
+    进行预加重的原因是：语音经发声者的口唇辐射发出，会受到唇端辐射抑制，高频能量被明显降低，
+    语音信号的频率提高2倍时，功率谱的幅度下降6dB.即语音信号的高频部分受到的抑制较大。
+    预加重就是为了补偿语音信号高频部分的振幅。
 
     Args:
         data (List[int]): 待加重的语音数据，一维数组
@@ -44,6 +49,10 @@ def preemphasis(data, a=0.98):
 def framing(data, frame_length=2048, hop_size=512):
     """分帧，将data分为多个frame_length长度的二维数组，
         帧与帧之间存在重叠，故指定跳数hop_size，一般要求hop_size<frame_length/2
+    语音信号是一个短时平稳信号，浊音是有规律的声带振动，即基音频率在短时范围内相对稳定。
+    可以认为，10~30ms内的语音片段是一个准稳态的，分为一帧。
+    一帧常规定为20ms~25ms，在采样率16Khz下，25ms意味着400个采样点。
+    两帧之间的基音可能变化，故重叠取帧，帧移10ms，重叠50%~60%。
 
     Args:
         data (List[float]): 预加重的音频数据
@@ -79,6 +88,7 @@ def framing(data, frame_length=2048, hop_size=512):
 
 def hamming(data, M):
     """对data加hanmming窗
+    分帧相当于对信号加了矩形窗，会发生过强的频谱泄露
 
     Args:
         data (List[List[float]]): 分帧后的音频数据

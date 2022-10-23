@@ -7,7 +7,16 @@ from multiprocessing import Pool
 from functools import partial
 from scipy import spatial
 import h5py
+"""
+mel频谱：
+对于人耳：
+1kHz以下，与频率成线性关系
+1kHz以上，与频率成对数关系
+因此人耳对低频信号比对高频信号更加敏感
+由大量心理声学实验得到了一个类似耳蜗作用的滤波器组，用于模拟人耳对不同频段信号的感知能力。
 
+求mel频谱，本质上是对语音幅度谱的一个矩阵乘法变换。
+"""
 RAW_DIR_PATH = "change here"
 RST_DIR_PATH = "change here"
 
