@@ -6,6 +6,8 @@ from collections.abc import Container
 """
 预加重，分帧，加窗，
 """
+
+
 def read_wav(file_name):
     """用librosa读取wav文件，返回数据，采样率和duration
 

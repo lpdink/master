@@ -120,7 +120,7 @@ def compute_th(PSD, barks, ATH, freqs):
 
     # compute the global masking threshold
     theta_x = np.sum(pow(10, Ts / 10.0), axis=0) + pow(10, ATH / 10.0)
-    theta_x = 10*np.log10(theta_x)
+    theta_x = 10 * np.log10(theta_x)
     return theta_x
 
 
@@ -148,22 +148,25 @@ def generate_th(audio, fs, window_size=2048):
     theta_xs = np.array(theta_xs)
     return theta_xs, psd_max, maxk
 
+
 def get_noise_s(theta_xs, maxk, N):
     # s^2 <=N^2*10^((theta_xs-96+maxk)/10)
-    rst = theta_xs-96+maxk
-    rst = rst/10
-    rst = np.power(10, rst)*N*N
+    rst = theta_xs - 96 + maxk
+    rst = rst / 10
+    rst = np.power(10, rst) * N * N
     # rst = np.sqrt(rst)
     return rst
+
+
 # a*a+b*b=s*s
 # s*s*0.6=a*a
 # a = sqrt(s^2*t)
 def generate_noise(noise_s, a=1):
-    rand=np.random.uniform(size=noise_s.shape)
-    noise_s=noise_s*a*a
-    real = np.sqrt(rand*noise_s)
-    unreal = np.sqrt((1-rand)*noise_s)*1j
-    noise_spec = (real+unreal).T
+    rand = np.random.uniform(size=noise_s.shape)
+    noise_s = noise_s * a * a
+    real = np.sqrt(rand * noise_s)
+    unreal = np.sqrt((1 - rand) * noise_s) * 1j
+    noise_spec = (real + unreal).T
     rst = librosa.istft(noise_spec, center=False)
     # return noise_spec
     return rst
@@ -181,7 +184,7 @@ if __name__ == "__main__":
     noise_s = get_noise_s(theta_xs, maxk, theta_xs.shape[0])
     # noise_spec = generate_noise(noise_s)
     noise = generate_noise(noise_s)
-    noise_audio = librosa.istft(stfted, center=False)+noise
+    noise_audio = librosa.istft(stfted, center=False) + noise
     istfted = librosa.istft(stfted, center=False).astype(np.int16)
     noise_audio = noise_audio.astype(np.int16)
     # breakpoint()
@@ -189,7 +192,7 @@ if __name__ == "__main__":
     # noise_audio_spec = stfted+noise_spec
     # 转时域, 记得一定要转int16!!!
     # noise_audio = librosa.istft(noise_audio_spec, center=False).astype(np.int16)
-    soundfile.write("noise_audio_handle.wav",noise_audio[512:][:-512],sr)
+    soundfile.write("noise_audio_handle.wav", noise_audio[512:][:-512], sr)
     soundfile.write("raw_handle.wav", istfted[512:][:-512], sr)
     # breakpoint()
 
