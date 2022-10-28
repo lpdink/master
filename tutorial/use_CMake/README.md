@@ -112,3 +112,58 @@ int myadd(int a, int b){
 }
 #endif
 ```
+## Step3: 为Library添加使用需求
+让Library自己描述自己的使用需求，调用方只需要简单地链接这个库就可以了。  
+达到这一目的，需要做到：任何试图使用库Library的CMakeLists，都必须将库的头文件include进来。除了库Library本身。  
+这需要在Library的CMakeLists.txt中添加:
+```
+target_include_directories(MyMathFunction
+          INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+          )
+```
+interface为引用本library的对象添加include，而不是本library本身.  
+这样,我们就能删除step2-ex2中include add的命令了.这就构成了step3.  
+## Step4: 添加生成器表达式
+### Exercise1: 让CMakeLists之间共享编译选项
+在主CMakeLists中创建一个额外的interface库,用于传递编译选项,需要使用该选项的库,只需要将interface库链接进来即可.
+```
+# 以创建库的形式,传入编译flags
+add_library(compiler_flags INTERFACE)
+target_compile_features(compiler_flags INTERFACE cxx_std_11)
+```
+我们让add库使用这个编译选项(使用C++11标准),修改它的CMakeLists,将库链接进来.
+```
+# compiler_flags来自于主CMakeLists,这是有些耦合的.
+target_link_libraries(MyMathFunction compiler_flags)
+```
+由于它是被调用方,所以compiler_flags来自于调用方,这很合理.  
+### Exercise2: 使用生成器表达式添加编译选项
+本节需要CMake3.15, 超出了笔者正在使用的3.10，本节略去.  
+有需要的读者请访问[官方教程](https://cmake.org/cmake/help/latest/guide/tutorial/Adding%20Generator%20Expressions.html#exercise-2-adding-compiler-warning-flags-with-generator-expressions)
+## Step5: 安装与测试
+### Exercise1: 安装规则
+通常，仅构建可执行文件是不够的，它还应该是可安装的。使用 CMake，我们可以使用 install() 命令指定安装规则。  
+接下来，我们通过安装命令：
+- 将使用的库文件安装到lib目录下。
+- 将库文件的头文件安装到include目录下。
+- 将可执行文件安装到bin目录下。
+- 映射头文件config.h也应该放置在include目录下。
+install命令看上去只在执行copy一样，命令十分简单：
+```
+# 如果是编译产物，第一个参数用TARGETS
+install(TARGETS HelloLibrary DESTINATION bin)
+# 如果是文件，第一个参数用FILES
+install(FILES "./rst/config.h" DESTINATION include)
+# 在库内部指定库自己的安装位置，在主文件指定bin文件的安装位置
+# 即谁生产，谁负责（安装）
+```
+参考step5，完成头文件，库文件，bin文件，interface库文件的安装后，在build.sh目录中追加了安装命令：
+```
+# 安装。这里通过DESTDIR="../install_rst"指定了安装路径。
+## 毕竟是测试工程，不便安装到/use/bin下。
+make install DESTDIR="../install_rst"
+```
+这一命令是在编译结果同级目录(rst)执行的。如果cmake版本大于3.15，则可以使用：
+```
+cmake --install .
+```
