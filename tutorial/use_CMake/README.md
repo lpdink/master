@@ -167,3 +167,38 @@ make install DESTDIR="../install_rst"
 ```
 cmake --install .
 ```
+### Exercise2: 测试支持
+使用cmake添加测试，首先在CMakeLists.txt文件中enable测试
+```
+enable_testing()
+```
+进行测试有两个关键：
+- 执行测试的命令
+- 校验程序输出结果是否正确。
+```
+# 添加测试，NAME和COMMAND是保留字，Usage是本测试名，任意取。COMMAND后面是执行测试的命令。
+# 测试往往是对bin文件进行的，只要是本cmake文件编译出的target，就不用进行路径配置。
+add_test(NAME Usage COMMAND HelloLibrary 99 99)
+
+
+# 为Usage测试校验结果，PASS_REGULAR_EXPRESSION表明进行正则表达式校验，检验程序的命令行打印是否包含后面的正则表达式。
+set_tests_properties(Usage
+  PROPERTIES PASS_REGULAR_EXPRESSION ".*198"
+  )
+```
+可以定义函数以快速地添加测试，本节也引入在cmake中定义函数的方法：
+```
+# 函数定义很简单function(函数名 参数列表)
+function(do_test target arg1 arg2 result)
+  add_test(NAME Comp${arg1}${arg2} COMMAND ${target} ${arg1} ${arg2})
+  set_tests_properties(Comp${arg1}${arg2}
+    PROPERTIES PASS_REGULAR_EXPRESSION ${result}
+    )
+endfunction()
+```
+这样，就能通过调用函数来快速地添加测试了。
+```
+do_test(HelloLibrary 1 98 ".*99")
+do_test(HelloLibrary 200 201 ".*401")
+do_test(HelloLibrary 114514 415411 ".*529925")
+```
