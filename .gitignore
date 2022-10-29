@@ -11,4 +11,5 @@ __pycache__
 *.h5
 *.wav
 rst
+install_rst
 ELASTICLAVE
