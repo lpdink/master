@@ -1,5 +1,5 @@
 # CMake教程
-本文是对[CMake官方阅读教程](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)的中文笔记，插入笔者自己的理解与改编，尽量与官方教程在目录结构上保持一致。建议读者搭配本文，本文附带的源码，及官方文档食用。
+本文是对 [CMake官方阅读教程](https://cmake.org/cmake/help/latest/guide/tutorial/index.html) 的中文笔记，插入笔者自己的理解与改编，尽量与官方教程在目录结构上保持一致。建议读者搭配本文，本文附带的源码，及官方文档食用。
 ## Step0: 安装
 本文基于Linux-ubuntu编写，在ubuntu上安装cmake，只需在终端键入: 
 ```
@@ -139,7 +139,7 @@ target_link_libraries(MyMathFunction compiler_flags)
 由于它是被调用方,所以compiler_flags来自于调用方,这很合理.  
 ### Exercise2: 使用生成器表达式添加编译选项
 本节需要CMake3.15, 超出了笔者正在使用的3.10，本节略去.  
-有需要的读者请访问[官方教程](https://cmake.org/cmake/help/latest/guide/tutorial/Adding%20Generator%20Expressions.html#exercise-2-adding-compiler-warning-flags-with-generator-expressions)
+有需要的读者请访问 [官方教程](https://cmake.org/cmake/help/latest/guide/tutorial/Adding%20Generator%20Expressions.html#exercise-2-adding-compiler-warning-flags-with-generator-expressions) 
 ## Step5: 安装与测试
 ### Exercise1: 安装规则
 通常，仅构建可执行文件是不够的，它还应该是可安装的。使用 CMake，我们可以使用 install() 命令指定安装规则。  
@@ -202,3 +202,115 @@ do_test(HelloLibrary 1 98 ".*99")
 do_test(HelloLibrary 200 201 ".*401")
 do_test(HelloLibrary 114514 415411 ".*529925")
 ```
+## Step6: 添加周期测试并转发结果
+即daily test，通过在CTestConfig.cmake中配置每日执行测试的时间，测试结果上传的url，就能定期执行测试，并将结果发送到URL。  
+在顶层CMakeLists.txt中添加：
+```
+include(CTest)
+```
+在项目顶层CMakeLists.txt同级创建CTestConfig.cmake，填写：
+```
+set(CTEST_PROJECT_NAME "CMakeTutorial")
+set(CTEST_NIGHTLY_START_TIME "00:00:00 EST")
+
+set(CTEST_DROP_METHOD "http")
+set(CTEST_DROP_SITE "my.cdash.org")
+set(CTEST_DROP_LOCATION "/submit.php?project=CMakeTutorial")
+set(CTEST_DROP_SITE_CDASH TRUE)
+```
+完成配置。my.cdash.org是某个开放的供给提交测试的网站。  
+如果想立即执行测试，可以编译二进制文件后执行：
+```
+ctest -D Experimental
+```
+这也会上传测试结果。  
+但感觉cmake提供daily test不是很有用，多数情况下，只有大型工程需要daily test，但真正由企业主导的大型工程往往又有自己的工具。  
+## Step7: 添加系统内省
+这将根据目标系统是否包含我们想要使用的特定函数，来决定**编译**行为。（即是否使用替代函数）  
+这对跨平台情况当然是有用的，但也很难说很有用，跨平台的交叉编译常出现在嵌入式设备上，但你不会希望在家里的微波炉上编译让它唱歌的程序。  
+更常见的情况是，使用交叉编译工具链，在x86上编译微波炉能执行的程序。
+感兴趣的读者请访问 [官方文档](https://cmake.org/cmake/help/latest/guide/tutorial/Adding%20System%20Introspection.html)
+## Step8: 添加自定义命令和生成的文件
+TODO
+## Step9: 使用CPack打包一个installer.
+TODO
+## Step10: 使用动态链接库
+本节的官方教程显得费解，故笔者在这里独立于教程提供一个使用动态库的良好实践。  
+本节的目标是编译并使用动态链接库，同时编译产生同名静态库。保证动态库和静态库，在第三方得到头文件和库文件后可以直接使用。  
+### 编译动态链接库
+编译动态库与静态库的方法一致，都是通过add_library方法：
+```
+add_library(<name> [STATIC | SHARED | MODULE]
+            [EXCLUDE_FROM_ALL]
+            [<source>...])
+```
+注意STATIC/SHARED需要大写。  
+我们创建一个make_lib目录，用于编译库文件，一个main目录，用于调用生成的库文件，两者的编译是分开的。  
+在make_lib下，我们要同时编译同名的动态库和静态库，但不能简单通过add_library达成，此时只会产生动态库，不会生成静态库。需要先编译成别名静态库，再通过property改名。  
+```
+add_library(own_math SHARED ${LIBOWN_MATH_SRC})
+
+# 不能直接通过add_library创建同名静态库，会只编译动态库出来
+# 因此，先创建一个别名静态库，再将输出名更改为同名的
+add_library(own_math_static STATIC ${LIBOWN_MATH_SRC})
+# 内置属性是需要大写的,(命令是大小写都可以的),包括PROPERTIES, OUTPUT_NAME, STATIC/SHARED等等
+set_target_properties(own_math_static PROPERTIES OUTPUT_NAME own_math)
+```
+这样，就能同时编译产生静态和动态库了。
+### 初探编译选项
+我们根据不同的编译模式，选择添加不同的编译选项。  
+这里采用一个option来选择编译模式，在Release下使用O3，Debug下使用O0, g和ggdb。  
+> 我不确定-g和-ggdb是否一起使用，我不明白他们具体在做什么工作。编译选项就是这样，你可以多加，但是最好不要少加。
+
+> Release下，编译器也不会主动为你选择O3的，O3优化并不总令程序变快，O2反而是开发人员对齐的标准。编译器的编写者不会主动做他们不100%肯定的事，所以锅都得我们来背。
+
+> 但我很信任O3，所以这里加上了。在生产环境下，建议O3一版，O2一版，Os一版，让测试同学跑一版速度测试，然后问问下游部门接受哪个。
+
+这里只为CXX添加了编译选项，如果你有C代码，记得给C_FLAGS也添加选项。  
+add_compile_options则作用于所有类型的代码。-fPIC使得动态库使用动态地址，这样它可以被其他人重用了，但也有被未授权第三方重用的风险。  
+> 没有-fPIC时默认使用静态地址，盲猜是一种控制流完整性策略。
+
+你几乎总应该开启-Wall -Wextra，他们没什么损失，而且会告诉你warning。
+```
+option(RELEASE_MODE "Release mode?" ON)
+if(RELEASE_MODE)
+    set(CMAKE_BUILD_TYPE "Release")
+    set(CMAKE_CXX_FLAGS "-O3")
+else()
+    set(CMAKE_BUILD_TYPE "Debug")
+    set(CMAKE_CXX_FLAGS "-g -ggdb -O0")
+endif(RELEASE_MODE)
+# -fPIC是共享库必须的，让共享库使用任意地址而不是固定地址 ## 这会允许恶意重用
+# 注意，这里不能用""包裹三个选项，这会让cmake把三个选项认为是一个.
+add_compile_options(-fPIC -Wall -Wextra)
+```
+### 编译选项的影响
+这里在Release和Debug模式下分别编译动态库和静态库，查看其外存大小。
+
+| 模式\库 | a库 | so库 |
+| ----| ---- | ---- | 
+| Debug | 3784 | 8912 |
+| Debug-Strip| 996 | 5760 |
+| Release | 1680  | 7544 |
+| Release-Strip | 908 | 5760 |
+> 在release模式下尝试了O3，O2与Os三种优化，结果都是一致的。  
+
+> 对动态库，Debug和Release的剪裁结果一样，应该是由于我们的代码太简单，没有优化余地导致的。
+
+Strip和Release对空间的减小都是必须的。但Strip -D是有风险的优化，有可能导致动态链接库无法被链接到，因此编译器的作者不会主动为你做这样的工作。他们优先考虑可用性。  
+> 所以锅得你来背，在发布上线前，记得strip，并测试保证程序没问题。
+### 引用动态链接库
+引用第三方库需要三个部分:
+- 通过link_directories指定库文件路径。
+- 通过target_include_directories引用第三方库头文件。
+- 通过target_link_libraries将库链接进来。
+```
+# NOTE:指定链接库路径，需要出现在add_executable之前
+link_directories("./lib")
+
+add_executable(main main.cxx)
+
+target_include_directories(main PUBLIC "./include")
+target_link_libraries(main PUBLIC own_math)
+```
+TODO: 动态库与静态库的优先级
