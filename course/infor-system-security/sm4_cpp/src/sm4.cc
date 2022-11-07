@@ -2,13 +2,14 @@
 namespace sm4
 {
     
-    void encoder(std::vector<unsigned char> text_bytes){
-        // TODO
-        // 强转是必须的，否则为0时好像会core，待测试。
-        for(int i=0;i<(int)text_bytes.size();i++){
+    // void encoder(std::vector<unsigned char> text_bytes){
+    //     // TODO
+    //     // 强转是必须的，否则为0时好像会core，待测试。
+    //     for(int i=0;i<(int)text_bytes.size();i++){
 
-        }
-    }
+    //     }
+    // }
+
     SM4Key::SM4Key(std::string key_)
     {
         // string to byte
@@ -32,7 +33,10 @@ namespace sm4
         }
         std::vector<unsigned char> text_bytes(text_length);
         memcpy(&text_bytes[0], plain_text.data(), text_length);
-        encoder(text_bytes);
+        
+        for(int i=0;i<32;i++){
+            
+        }
         
     }
 }
