@@ -7,8 +7,6 @@ import sys
 LENGTH = 1000
 WIDTH = 1000
 HEIGHT = 1000
-# 使得h>l>w
-WIDTH, LENGTH, HEIGHT = sorted([LENGTH, WIDTH, HEIGHT])
 
 INPUT_JSON="../resources/input.json"
 
@@ -28,8 +26,6 @@ class Cube:
         self.l_s = l_s
         self.w_s = w_s
         self.h_s = h_s
-        # 使得h>=l>=w
-        w, l, h = sorted([l, w, h])
         # 长宽高
         self.l = l
         self.w = w
@@ -98,28 +94,33 @@ def main():
     start = Cube(0,0,0,LENGTH, WIDTH, HEIGHT)
     pq.put(start)
     objs = get_objs_from_json(INPUT_JSON)
+    # objs = np.array([[100,100,100]*1000]).reshape(1000, 3)
     # 逐个遍历输入
     for obj in objs:
         flow_cube = Cube.flow_cube(*obj)
-        copy_pq = deepcopy(pq)
         less_cubes = Queue()
         # 遍历所有的空闲空间
-        while not copy_pq.empty():
-            fix_cube:Cube = copy_pq.get()
+        while not pq.empty():
+            fix_cube:Cube = pq.get()
             if fix_cube.bigger_than(flow_cube):
                 new_space = fix_cube.put_in(flow_cube)
                 # 放入new_space和小于的
                 while not less_cubes.empty():
-                    copy_pq.put(less_cubes.get())
+                    pq.put(less_cubes.get())
                 for cube in new_space:
-                    copy_pq.put(cube)
-                pq = copy_pq
+                    pq.put(cube)
                 break
             else:
                 less_cubes.put(fix_cube)
         else:
             # 正常遍历结束,说明没找到
             print_warning(f"obj {flow_cube} can't put in.")
+            while not less_cubes.empty():
+                pq.put(less_cubes.get())
+    all_v=0
+    while not pq.empty():
+        all_v+=pq.get().v
+    print(f"available v is {all_v} used {1-all_v/(WIDTH*HEIGHT*LENGTH)}")
     breakpoint()
 
 if __name__=="__main__":
