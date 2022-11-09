@@ -1,3 +1,0 @@
-namespace sm4{
-    
-}

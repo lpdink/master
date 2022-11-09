@@ -22,4 +22,4 @@ cmake --build .
 # make install DESTDIR=$install_foler
 
 # exec
-./benchmark
+# ./benchmark
