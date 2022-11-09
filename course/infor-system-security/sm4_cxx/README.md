@@ -26,5 +26,5 @@ sm4 -k key -d ciphertext
 ## 库使用
 拷贝安装目录.sm4_install到您的项目，引用include下的头文件，链接lib下的静态库或动态库。  
 ## 性能
-![img]("tools/speed.png")  
+![img](tools/speed.png)  
 64  Intel(R) Xeon(R) Gold 6138 CPU @ 2.00GHz
