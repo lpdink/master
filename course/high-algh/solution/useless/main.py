@@ -8,13 +8,16 @@ LENGTH = 1000
 WIDTH = 1000
 HEIGHT = 1000
 
-INPUT_JSON="../resources/input.json"
+INPUT_JSON = "../resources/input.json"
+
 
 def print_warning(msg):
     print(f"\033[33m{msg}\033[0m")
 
+
 def print_error(msg):
     print(f"\033[31m{msg}\033[0m")
+
 
 class Cube:
     @classmethod
@@ -38,19 +41,21 @@ class Cube:
         yield from [self.l_s, self.h_s, self.w_s, self.h, self.l, self.w]
 
     def __lt__(self, other):
-        return tuple(self)<tuple(other)
+        return tuple(self) < tuple(other)
 
     def __eq__(self, __o: object) -> bool:
-        return tuple(self)==tuple(__o)
+        return tuple(self) == tuple(__o)
 
     def __repr__(self) -> str:
         if self.l_s is None or self.w_s is None or self.h_s is None:
-            return f"Flow {type(self).__name__}:(h, l, w) is ({self.h},{self.l},{self.w})"
+            return (
+                f"Flow {type(self).__name__}:(h, l, w) is ({self.h},{self.l},{self.w})"
+            )
         return f"{type(self).__name__} (l_s, h_s, w_s, h, l, w) is {tuple(self)}"
 
     @property
     def v(self):
-        return self.l*self.h*self.w
+        return self.l * self.h * self.w
 
     def get_origin(self):
         return (self.l_s, self.w_s, self.h_s)
@@ -61,7 +66,7 @@ class Cube:
         self.h_s = h_s
 
     def bigger_than(self, other):
-        return self.l>=other.l and self.w>=other.w and self.h>=other.h
+        return self.l >= other.l and self.w >= other.w and self.h >= other.h
 
     def put_in(self, other):
         if not self.bigger_than(other):
@@ -72,26 +77,51 @@ class Cube:
         # 假设一个obj的h>l>w, 放入obj后产生空间
         # 优先令h,l,w依次最大
         new_space = []
-        if other.w<self.w:
-            new_space.append(type(self)(self.l_s, self.w_s+other.w, self.h_s, self.l, self.w-other.w, self.h))
-        if other.l<self.l:
-            new_space.append(type(self)(self.l_s+other.l, self.w_s, self.h_s, self.l-other.l, other.w, self.h))
-        if other.h<self.h:
-            new_space.append(type(self)(self.l_s, self.w_s, self.h_s+other.h, other.l, other.w, self.h-other.h))
+        if other.w < self.w:
+            new_space.append(
+                type(self)(
+                    self.l_s,
+                    self.w_s + other.w,
+                    self.h_s,
+                    self.l,
+                    self.w - other.w,
+                    self.h,
+                )
+            )
+        if other.l < self.l:
+            new_space.append(
+                type(self)(
+                    self.l_s + other.l,
+                    self.w_s,
+                    self.h_s,
+                    self.l - other.l,
+                    other.w,
+                    self.h,
+                )
+            )
+        if other.h < self.h:
+            new_space.append(
+                type(self)(
+                    self.l_s,
+                    self.w_s,
+                    self.h_s + other.h,
+                    other.l,
+                    other.w,
+                    self.h - other.h,
+                )
+            )
         return new_space
-            
 
-
-        
 
 def get_objs_from_json(json_path):
     with open(json_path, "r") as file:
         content = json.load(file)
     return np.array(content["input"])
 
+
 def main():
     pq = PriorityQueue()
-    start = Cube(0,0,0,LENGTH, WIDTH, HEIGHT)
+    start = Cube(0, 0, 0, LENGTH, WIDTH, HEIGHT)
     pq.put(start)
     objs = get_objs_from_json(INPUT_JSON)
     # objs = np.array([[100,100,100]*1000]).reshape(1000, 3)
@@ -101,7 +131,7 @@ def main():
         less_cubes = Queue()
         # 遍历所有的空闲空间
         while not pq.empty():
-            fix_cube:Cube = pq.get()
+            fix_cube: Cube = pq.get()
             if fix_cube.bigger_than(flow_cube):
                 new_space = fix_cube.put_in(flow_cube)
                 # 放入new_space和小于的
@@ -117,11 +147,12 @@ def main():
             print_warning(f"obj {flow_cube} can't put in.")
             while not less_cubes.empty():
                 pq.put(less_cubes.get())
-    all_v=0
+    all_v = 0
     while not pq.empty():
-        all_v+=pq.get().v
+        all_v += pq.get().v
     print(f"available v is {all_v} used {1-all_v/(WIDTH*HEIGHT*LENGTH)}")
     breakpoint()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

@@ -36,7 +36,7 @@
 ```
 python>=3.8
 numpy
-scipy
+scipy # 使用scipy.singal提供的二维卷积加速，也可以不使用，内置的二维卷积慢约50%
 ```
 ## Usage
 ```
@@ -92,3 +92,22 @@ main cost 7554.092884063721 ms
 
 ```
 可见，在这一设置下，放入100个货物需要约6~9秒，空间利用率56%~73%(期望80%)，放入的体积占总货物体积的65%~93%(期望100%)
+## 性能瓶颈
+感谢numpy，为操作大规模数组space提供了方便且高效的求和，切片，重组，查询。操作数组并不是本程序的最大开销。  
+由于我们要评估矩阵(当前物体的l\*w)可以放在space的哪里，并且要优先放置在高度潜力低的位置(剩余高度小)。故对每个物体，我们实际上需要创建l\*w的，值全为1的卷积核，对space卷积(对卷积结果矩阵，我们将它增序排序，遍历，逐一尝试当前space区域是否可以放下这个货物。)  
+如果卷积核足够小，space又足够大，卷积的开销是很大的。  
+以下是将长宽高调整到1000时，使用pyinstrument分析的各模块时间消耗。
+```
+73.892 <module>  3d-map.py:1
+├─ 51.161 timed_func  3d-map.py:36
+│  └─ 51.161 main  3d-map.py:133
+│     └─ 50.802 timed_func  3d-map.py:36
+│        └─ 50.679 Space.put_in  3d-map.py:87
+│           └─ 50.087 convolve2d  scipy/signal/signaltools.py:1618
+│                 [3 frames hidden]  scipy, <built-in>
+├─ 18.289 <module>  scipy/signal/__init__.py:1
+│     [1116 frames hidden]  scipy, <built-in>, dataclasses, funct...
+└─ 4.420 <module>  numpy/__init__.py:1
+      [397 frames hidden]  numpy, <built-in>, mkl, ctypes, struc...
+```
+conv2d占用了约70%的性能开销。更大的space及更小的物体最小值会加大卷积的开销，使得我们几乎不能在python上应用1000\*1000\*1000及以上的空间，每个物体的放入都需要7s左右。
