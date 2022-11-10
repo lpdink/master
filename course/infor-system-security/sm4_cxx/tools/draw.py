@@ -17,7 +17,7 @@ def main():
     plt.bar(range(len(encrypt_time.keys())), list(
         encrypt_time.values()), tick_label=list(encrypt_time.keys()))
     plt.plot(range(len(encrypt_time.keys())),
-             decrypt_time.values(), color="black")
+             encrypt_time.values(), color="black")
     plt.xticks(fontsize=7)
     plt.ylabel("encrypt time(ms)", fontsize=7)
     plt.subplot(212)
