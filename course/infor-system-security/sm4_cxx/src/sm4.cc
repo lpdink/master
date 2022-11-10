@@ -16,20 +16,18 @@ void encrypt(std::string &key, std::string &msg, unsigned char *rst) {
               rst + i * 16);
   }
 }
-byte to_decrypt_mem[655360];
+byte decrypt_mem[655360];
 std::string decrypt(std::string &key, unsigned char *encrypt, int num) {
   uint32 rst_key[32];
   int padding_num = num;
   if (padding_num % 16 != 0) padding_num += 16 - padding_num % 16;
-  memcpy(to_decrypt_mem, encrypt, num);
+  memcpy(decrypt_mem, encrypt, padding_num);
 
-  byte decrypt_uc[padding_num];
-  std::string rst;
   sm4_get_key(sm4_decrypt, rst_key, (byte *)key.data());
   for (int i = 0; i < (int)(padding_num / 16); i++) {
-    sm4_crypt(rst_key, to_decrypt_mem + i * 16, decrypt_uc + i * 16);
+    sm4_crypt(rst_key, encrypt + i * 16, decrypt_mem + i * 16);
   }
-  rst = (char *)decrypt_uc;
+  std::string rst = (char *)decrypt_mem;
   return rst.substr(0, num);
 }
 

@@ -19,7 +19,7 @@ cmake ../
 
 cmake --build .
 
-# make install DESTDIR=$install_foler
+make install DESTDIR="../"$install_foler
 
 # exec
 # ./benchmark

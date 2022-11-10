@@ -27,6 +27,8 @@ std::vector<int> split(std::string str, std::string pattern) {
   return result;
 }
 
+static unsigned char encrypt_msg[655350];
+
 int main(int argc, char* argv[]) {
   string key, msg;
   if (argc != 5) {
@@ -41,25 +43,28 @@ int main(int argc, char* argv[]) {
     }
     if (strcmp(argv[3], "-e") == 0) {
       msg = argv[4];
-      unsigned char en_rst[msg.size()];
-      encrypt(key, msg, en_rst);
+      encrypt(key, msg, encrypt_msg);
       cout << "encrypt result:" << endl;
-      for (int i = 0; i < (int)msg.size(); i++) {
-        cout << (int)en_rst[i];
-        if (i != (int)(msg.size() - 1)) cout << "-";
+      int padding_num = msg.size();
+      if (padding_num % 16 != 0) padding_num += 16 - padding_num % 16;
+      for (int i = 0; i < padding_num; i++) {
+        cout << (int)encrypt_msg[i];
+        if (i != padding_num - 1) cout << "-";
       }
       cout << endl;
     } else if (strcmp(argv[3], "-d") == 0) {
       msg = argv[4];
       vector<int> nums = split(msg, "-");
       if (nums.size() > 0) {
-        unsigned char to_decrypt[nums.size()];
+        if (nums.size() % 16 != 0) {
+          cout << "decrypt text should be 16x" << endl;
+          return -1;
+        }
         for (int m = 0; m < (int)nums.size(); m++) {
-          to_decrypt[m] = (unsigned char)(nums[m]);
-          cout << (int)to_decrypt[m] << "-";
+          encrypt_msg[m] = (unsigned char)(nums[m]);
         }
         cout << "decrypt result:" << endl;
-        cout << decrypt(key, to_decrypt, nums.size()) << endl;
+        cout << decrypt(key, encrypt_msg, nums.size()) << endl;
 
       } else {
         cout << "input ciphertext error, please check." << endl;
@@ -70,5 +75,6 @@ int main(int argc, char* argv[]) {
     }
   } else {
     cout << "need -k and should be first" << endl;
-  }
+    }
+  return 0;
 }

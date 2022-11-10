@@ -10,6 +10,7 @@ using namespace std;
 
 static string ACC_PATH = "../acc.txt";
 static const int SPEED_TEST_TIMES = 1000;
+static unsigned char encrypt_msg[655360];
 void test_acc() {
   ifstream infile(ACC_PATH);
   if (infile.is_open() == false) {
@@ -22,7 +23,6 @@ void test_acc() {
   while (getline(infile, line)) {
     key = line.substr(0, 16);
     msg = line.substr(17);
-    unsigned char encrypt_msg[msg.size()];
     encrypt(key, msg, encrypt_msg);
     decrypt_msg = decrypt(key, encrypt_msg, msg.size());
     if (decrypt_msg != msg) err++;
@@ -31,8 +31,6 @@ void test_acc() {
   infile.close();
   cout << "acc test done, failed: " << err << " in " << line_nums << endl;
 }
-
-unsigned char encrypt_msg_speed[655360];
 
 void test_speed() {
   string key, msg, decrypt_msg;
@@ -44,7 +42,7 @@ void test_speed() {
     duration = 0;
     for (int j = 0; j < SPEED_TEST_TIMES; j++) {
       start = clock();
-      encrypt(key, msg, encrypt_msg_speed);
+      encrypt(key, msg, encrypt_msg);
       end = clock();
       duration += (double)(end - start) / CLOCKS_PER_SEC;
     }
@@ -53,7 +51,7 @@ void test_speed() {
     duration = 0;
     for (int j = 0; j < SPEED_TEST_TIMES; j++) {
       start = clock();
-      decrypt_msg = decrypt(key, encrypt_msg_speed, msg.size());
+      decrypt_msg = decrypt(key, encrypt_msg, msg.size());
       end = clock();
       duration += (double)(end - start) / CLOCKS_PER_SEC;
     }
