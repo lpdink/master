@@ -66,21 +66,6 @@ void show_except_last_right(const vector<T> &res_v)
 ```
 > 真是令人怀念，当时的基础确实太差了...
 ### 不要依赖隐式转换和错误
-不要写这样的代码：
-```
-double d1=3.14;
-int i1=d1;
-float f1=i1;
-```
-当然，编译器理解你要做什么，但为了可读性，更好的写法是：  
-```
-double d1=3.14;
-// many other lines...
-int i1=(int)d1;
-// many other lines...
-float f1=(float)i1;
-```
-这是在告诫阅读者，d1与t1的类型不同，i1与f1的类型不同。  
 不要依赖于错误，常见的是通过超出范围取得最大值：
 ```
 unsigned char char_max=-1;
