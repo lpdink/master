@@ -3,15 +3,15 @@ import json
 import os
 
 # 生成随机货物
-NUMS = 100
+NUMS = int(8*1e4)
 MIN_SIZE = 1
-MAX_SIZE = 40
+MAX_SIZE = 1000
 
 
 def random_input():
     objs = np.random.randint(MIN_SIZE, MAX_SIZE + 1, (NUMS, 3))
     data_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "../resources/input.json"
+        os.path.dirname(os.path.abspath(__file__)), "../resources/.input.json"
     )
     with open(data_path, "w") as file:
         dic = {"input": objs.tolist()}
