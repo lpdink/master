@@ -3,9 +3,9 @@ import json
 import os
 
 # 生成随机货物
-NUMS = int(8*1e4)
-MIN_SIZE = 1
-MAX_SIZE = 1000
+NUMS = int(32000)
+MIN_SIZE = 8
+MAX_SIZE = 53
 
 
 def random_input():

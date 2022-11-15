@@ -13,9 +13,10 @@ import json
 import numpy as np
 import os
 
-LENGTH = 10000
-WIDTH = 10000
-HEIGHT = 10000
+LENGTH = 1220
+WIDTH = 244
+HEIGHT = 290
+SPACE_V = LENGTH*WIDTH*HEIGHT
 
 INPUT_JSON = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../resources/.input.json"
@@ -42,6 +43,7 @@ class Cube:
         self._l = l
         self._w = w
         self._h = h
+        self._v = l*w*h
 
     def __iter__(self):
         yield from [self._l, self._w, self._h]
@@ -63,7 +65,7 @@ class Cube:
 
     @property
     def v(self):
-        return self._h * self._l * self._w
+        return self._v
 
 
 class Space:
@@ -76,11 +78,13 @@ class Space:
 
     @property
     def usage_v(self):
-        return LENGTH * WIDTH * HEIGHT - self.available
+        return SPACE_V - self.available
 
     @timer
     def put_in(self, cube: Cube):
-        for l_index in range(0, LENGTH-cube.length+1):
+        base_line = max(0, self.usage_v/SPACE_V-0.05)
+        begin = int(base_line*LENGTH)
+        for l_index in range(begin, LENGTH-cube.length+1):
             for w_index in range(0, WIDTH-cube.width+1):
                 space_kernel = self.space[
                 l_index : l_index + cube.length, w_index : w_index + cube.width
@@ -88,8 +92,9 @@ class Space:
                 if np.all(space_kernel>cube.height):
                     space_kernel -= cube.height
                     space_kernel = np.min(space_kernel)
-                    return
+                    return True
         print_warning(f"obj {cube} can't put in.")
+        return False
 
 
 @timer
@@ -104,17 +109,17 @@ def main():
     space = Space()
     # objs = np.random.randint(1,200,(5,3))
     objs = get_objs_from_json(INPUT_JSON)
-    all_v = 0
-    for index, obj in enumerate(objs):
-        obj = sorted(obj)
-        cube = Cube(*obj)
-        all_v += cube.v
-        space.put_in(cube)
-        print(f"---->{index} in {len(objs)} {index/len(objs)}%")
+    try:
+        for index, obj in enumerate(objs):
+            cube = Cube(*obj)
+            # 当放入时，增加利用了的体积.
+            space.put_in(cube)
+            print(f"->{index} in {len(objs)} {index/len(objs)}% space usage: {space.usage_v/SPACE_V}%")
+    except KeyboardInterrupt:
+        pass
     print(
-        f"space usage:{space.usage_v} in {LENGTH*WIDTH*HEIGHT}  {space.usage_v/(LENGTH*WIDTH*HEIGHT)}%"
+        f"space usage:{space.usage_v} in {SPACE_V}  {space.usage_v/SPACE_V}%"
     )
-    print(f"in all_v:{space.usage_v/all_v}%")
 
 
 if __name__ == "__main__":
