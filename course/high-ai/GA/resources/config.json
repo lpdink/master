@@ -1,0 +1,7 @@
+{
+    "popsize":100,
+    "chromlength":15,
+    "pc":0.6,
+    "pm":0.01,
+    "loops":500
+}
