@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <cstring> // 支持strcmp等
 #include <vector>
 
 #include "sm4.h"
