@@ -57,12 +57,14 @@ numpy
 ### 车箱
 我们选择所有集装箱中最大的40英寸国际标准集装箱确定车箱大小。(更小的车箱大小的复杂度更低。)  
 查询 [40英尺国际标准通用集装箱说明书](https://max.book118.com/html/2020/0927/6020042014003002.shtm)
+
 ![img](img.png)  
 
 不妨设车箱长12.20m，宽2.44m，高2.90m（保留2位小数，以满足题设）。
 ### 箱子
 选取顺丰快递提供的各类包装箱的尺寸标准。  
 查询 [顺丰包装物料](https://htm.sf-express.com/HK/sc/products_services/Express_Services/Value_added_Services/SF_Packing_Materials/)
+
 ![box](box.png)  
 
 不妨设箱子的边长为0.08m~0.53m的随机数。
