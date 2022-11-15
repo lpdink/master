@@ -79,7 +79,7 @@ class Space:
         return LENGTH * WIDTH * HEIGHT - self.available
 
     @timer
-    def put_in(self, cube: Cube, test):
+    def put_in(self, cube: Cube):
         for l_index in range(0, LENGTH-cube.length+1):
             for w_index in range(0, WIDTH-cube.width+1):
                 space_kernel = self.space[
