@@ -19,7 +19,7 @@ HEIGHT = 290
 SPACE_V = LENGTH*WIDTH*HEIGHT
 
 INPUT_JSON = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../resources/.input.json"
+    os.path.dirname(os.path.abspath(__file__)), "../resources/input.json"
 )
 
 
@@ -44,12 +44,16 @@ class Cube:
         self._w = w
         self._h = h
         self._v = l*w*h
+        self.position = None
 
     def __iter__(self):
         yield from [self._l, self._w, self._h]
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}:{tuple(self)}"
+        if self.position is None:
+            return f"{type(self).__name__}:{tuple(item*0.01 for item in tuple(self))}"
+        else:
+            return f"{type(self).__name__}:{tuple(round(item*0.01, 2) for item in tuple(self))} pos:{tuple(round(item*0.01, 2) for item in self.position)}"
 
     @property
     def length(self):
@@ -89,9 +93,12 @@ class Space:
                 space_kernel = self.space[
                 l_index : l_index + cube.length, w_index : w_index + cube.width
                 ]
-                if np.all(space_kernel>cube.height):
+                if np.all(space_kernel>=cube.height):
                     space_kernel -= cube.height
-                    space_kernel = np.min(space_kernel)
+                    min_height = np.min(space_kernel)
+                    space_kernel = min_height
+                    # 标记cube位置
+                    cube.position = (l_index, w_index, HEIGHT-(min_height+cube.height))
                     return True
         print_warning(f"obj {cube} can't put in.")
         return False
@@ -109,17 +116,23 @@ def main():
     space = Space()
     # objs = np.random.randint(1,200,(5,3))
     objs = get_objs_from_json(INPUT_JSON)
+    put_in_cubes = []
     try:
         for index, obj in enumerate(objs):
             cube = Cube(*obj)
             # 当放入时，增加利用了的体积.
-            space.put_in(cube)
+            if space.put_in(cube):
+                put_in_cubes.append(cube)
             print(f"->{index} in {len(objs)} {index/len(objs)}% space usage: {space.usage_v/SPACE_V}%")
     except KeyboardInterrupt:
         pass
     print(
         f"space usage:{space.usage_v} in {SPACE_V}  {space.usage_v/SPACE_V}%"
     )
+    with open("result_pos.txt", "w") as file:
+        content = "\n".join([str(cube) for cube in put_in_cubes])
+        file.write(content)
+
 
 
 if __name__ == "__main__":
