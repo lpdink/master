@@ -3,7 +3,7 @@ import json
 import os
 
 # 生成随机货物
-NUMS = int(4)
+NUMS = int(4000)
 MIN_SIZE = 8
 MAX_SIZE = 53
 
