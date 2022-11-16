@@ -610,14 +610,14 @@ bool failed = (score<60)?true:false;
 ^ 位异或
 | 位或
 ```
-### 类型转换
-C风格的强制类型转换(即前置(type))非常不推荐，应该使用static_cast\<type\>取代它。  
+### 类型转换: static_cast
+C风格的强制类型转换(即前置(type))非常不推荐，应该使用static_cast或reinterpret_cast取代它。  
 ```
 double num=4.2;
 void *p=&num;
 double *dp = static_cast<double*>(p);
 ```
-- const_cast<type>(old_num)
+### const_cast<type>(old_num)
 const_cast可以去掉底层const。由于const指针可以指向非const对象，因此在**必要条件**下，去掉const指针的const还是可以的（如果它实际上指向了一个非const对象）。  
 但是，如果它指向了一个const对象，使用const_cast后的写行为是非常危险的，是未定义而取决于编译器的：
 ```
@@ -643,4 +643,120 @@ for(auto& n:num){
 所以，上面的情况只是编译器变的戏法，它先将const int这样的常量做了全局的替换，就像#define一样。   
 **num**的值，它的地址存储的值，已经改变了。  
 > g++什么也没守护...我哭死...
-### TODO：reinterpret_cast
+### 区分static_cast与reinterpret_cast
+static_cast用于“存在某种转换协议”时，常见的情况有：
+1. 用于类层次结构中基类和派生类之间指针或引用的转换
+    - 进行上行转换（把派生类的指针或引用转换成基类表示）是安全的
+    - 进行下行转换（把基类的指针或引用转换为派生类表示），由于没有动态类型检查，所以是不安全的
+2. 用于基本数据类型之间的转换，如把int转换成char。这种转换的安全也要开发人员来保证
+3. 把空指针转换成目标类型的空指针
+4. 把任何类型的表达式转换为void类型
+
+reinterpret_cast如其名，用于类型的重新解释，是一种低层次的转换，它并没有直接做什么，只是让编译器重新去理解一个变量。   
+我们的数值实际上以字节为最小单位存放在申请的空间中，该空间被用“变量类型”(作为协议)来解释。  
+reinterpret就是用新的变量类型(新协议)来解释相同的一块内存空间。   
+这里提供一个较好的，应用了三种转换的实例：
+```
+string s("0123456789-abcdefgh");
+const char *s_c=s.c_str();
+char* writable_sc = const_cast<char*>(s_c);
+// 重解释为unsigned char
+unsigned char *uc_writable_sc=reinterpret_cast<unsigned char*>(writable_sc);
+int idx=0;
+// \0==0
+uc_writable_sc[1]=242; // 修改使超出signed char范围
+uc_writable_sc[2]=-42;
+while((uc_writable_sc[idx])!='\0'){
+    cout<<writable_sc[idx]<<" "<<static_cast<int>(writable_sc[idx])<<" ";
+    cout<<uc_writable_sc[idx]<<" "<<static_cast<int>(uc_writable_sc[idx++])<<endl;
+}
+cout<<uc_writable_sc<<" "<<writable_sc<<" "<<s_c<<" "<<s<<endl;
+```
+结果是：
+```
+0 48 0 48
+� -14 � 242 //在没有超出范围时，
+� -42 � 214
+3 51 3 51
+4 52 4 52
+5 53 5 53
+6 54 6 54
+7 55 7 55
+8 56 8 56
+9 57 9 57
+- 45 - 45
+a 97 a 97
+b 98 b 98
+c 99 c 99
+d 100 d 100
+e 101 e 101
+f 102 f 102
+g 103 g 103
+h 104 h 104
+// string被改变了！它本来是一个const char*的。
+0��3456789-abcdefgh 0��3456789-abcdefgh 0��3456789-abcdefgh 0��3456789-abcdefgh
+```
+可以看到，在0-127范围内，char与unsigned char的行为是完全一致的，只有在我们有意的超出两个类型的范围的修改上表现出差异。   
+static, reinterpret, const三种cast都发生在编译时期。  
+### TODO: dynamic_cast
+运行时执行的，运行时进行类型检查，需要自定义类型且具备虚函数，不能用于内置类型。  
+在后面推进到虚函数时来补充。
+## 第五章 语句
+### switch
+```
+int i=0;
+switch (i){
+    case 0:
+        i+=2;
+        break; // 如果注释掉本行，会进入case 2;
+    case 1:
+        i+=2;
+        break;
+    case 2:
+        i=99;
+        break;
+    default: // 如果没有一个case触发，执行这里
+        i=-99;
+        break;
+}
+```
+### do-while
+```
+do{
+    ;;;
+}while(bool_exp)
+```
+### 异常处理：try-catch
+由于真实系统的边界情况极多，异常处理逻辑复杂。如果与业务逻辑交织在一起，将令维护者难以快速判断哪里是(处理99%情况的)核心代码。   
+因此，在程序架构上，应该将异常捕获/处理的代码与业务逻辑分离开来，在底层遇到边界情况时抛出异常，在最上层捕获异常，并进行处理。  
+- 使用throw抛出异常
+
+> 标准库异常定义在stdexcept头文件中
+```
+throw runtime_error("a runtime error msg");
+```
+- 使用try-catch捕获异常
+
+```
+try{
+    // 可能出现异常的代码
+} catch (runtime_error err){
+    cout<<err.what();//what 被标准库的所有异常提供
+}
+```
+stdexcept中定义的异常：
+```
+exception // 最常见的异常，不允许提供任何信息，只能默认初始化。
+runtime_error	描述 // 被以下四个继承，本身也可以作为一种异常使用
+range_error	边界错误
+overflow_error	上溢
+underflow_error	下溢
+system_error	系统错误
+
+logic_error	描述 // 被以下四个继承，本身也可以作为一种异常使用
+domain_error	域错误
+invalid_argument	非法参数
+length_error	通常是创建对象是给出的尺寸太大
+out_of_range	访问超界
+future_error	未知错误
+```
