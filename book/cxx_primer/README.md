@@ -39,7 +39,7 @@ long double 16
 - 警惕unsigned的值经过计算（尝试）到达负值，此时会重回上界。
 - 警惕unsigned的值与signed的值的比较。
 在实际场景中，冒犯两个警惕的最常见场景是，stl容器的.size()，这个方法的返回值是unsigned的！
-```
+```cpp
 template <typename T>
 void show_except_last_err(const vector<T> &res_v)
 {
@@ -109,7 +109,7 @@ cout<<test<<end;
 > 变量只能被定义一次，但可以被多次声明。
 
 默认extern非常容易造成命名空间污染：
-```
+```cpp
 // 如果你在两个cc文件中定义了相同签名的函数，就会出现multiple definition的错误！
 // file1.cc
 int test(int a, int b){return a+b;}
@@ -224,7 +224,7 @@ const int &you_cant_change_ci=ci;
 创建一个非const对象的const引用是非常有用的，通常在定义函数时，形参被定义为一个const引用，但是传递进来的实参本身并不是const的。这使得我们能传递引用，但是保证函数不修改我们的对象。
 - **const与指针**
 **指向常量的指针**
-```
+```cpp
 // 真正指向常量的指针，很少这样做.
 const int val=42;
 const int* val_ptr=&val;
@@ -239,7 +239,7 @@ const int* val_ptr=&val;
 **常指针/顶层const**
 常指针指，指针指向的地址本身不能变化，但是地址内的值可以变化。感觉用的比较少。  
 底层const则指，指针指向的对象是常量。  
-```
+```cpp
 int val=42;
 int* const ptr=&val; //ptr将一直指向&val地址，但是不会管里面的值是否变化。
 
@@ -250,7 +250,7 @@ C++11特性。
 这是一种在**编译时**由编译器计算结果的表达式，而不是在运行时计算。  
 得到计算结果后，该对象与const在运行时的行为一致。  
 你可以将一切你认为应该是constexpr的表达式声明成constexpr的，如果不是，编译器会告诉你的。
-```
+```cpp
 vector<int> res_vec;
 // 如果你尝试这样做，编译器会报错。
 constexpr int length = res_vec.size();
@@ -276,7 +276,7 @@ const int *p = nullptr; // 这是指向常量的指针
 constexpr int *q = nullptr;// 这是常指针！
 ```
 你可以混用constexpr与const创建一个指向常量的常指针，但是，你可以用两个const完成这一工作，所以别把constexpr与指针放在一起。
-```
+```cpp
 constexpr int *p=nullptr
 // is eq to 
 int *const p=nullptr;
@@ -296,7 +296,7 @@ using MyInt=int; // 11标准
 ### auto
 auto也是c++11新支持的。  
 - 与const
-```
+```cpp
 const int val=42;
 auto a=val; //a 不是const的，顶层const被忽略了。
 auto p=&val //p是一个指向const的指针，底层const被保留了。
@@ -315,7 +315,7 @@ decltype(i) x=84;
 \#系列的命令由预处理器执行，包括include。  
 它的工作逻辑非常简单，发现#include，找到include的文件，将内容复制到当前文件。  
 这带来一个问题，在层级引用中，有可能会出现多重include:
-```
+```cpp
 // file1.h
 define something
 // file2.h
@@ -344,7 +344,7 @@ define something
 using std::string;
 ```
 - 初始化
-```
+```cpp
 string s1;
 string s2=s1; // or string s2(s1);
 string s3="aljd";
@@ -367,7 +367,7 @@ s.sub(begin_index, nums);//注意第二个参数是个数。
 ```
 ### 处理字符的函数
 定义在头文件cctype中
-```
+```cpp
 isalnum(c) //c为字母或数字
 isalpha(c) //c为字母
 iscntrl(c) //c为控制字符
@@ -399,7 +399,7 @@ for(auto& c:s){
 using std::vector;
 ```
 - 初始化
-```
+```cpp
 vecotr<T> v1;
 vector<T> v2(v1);
 vector<T> v2=v1;//对元素拷贝的
@@ -413,7 +413,7 @@ vector<T> v4={a,b,c};
 除了下标运算符，还可以利用迭代器访问容器元素。  
 所有的标准库容器都可以使用迭代器。  
 string不算容器，但也可以使用迭代器。  
-```
+```cpp
 string s("abcdefg");
 // end()返回的迭代器并不实际指向某个元素，只作为\0
 if(s.begin()!=s.end()){
@@ -458,7 +458,7 @@ int num[a_constexpr];
 - 字符数组
 
 字符数组有一个\0的结尾约定，故存在，你需要\0，你不需要\0两种情况：
-```
+```cpp
 char a1[]={'c','+','+'}; // 不会添加\0
 char a1[]={'c','+','+','\0'}; // 你自己添加了\0
 char a3[] = "C++"; // 编译器为你自动添加\0
@@ -466,7 +466,7 @@ const char a4[3]="C++"; // 报错，没有空间添加\0
 ```
 - 不允许拷贝和赋值
 
-```
+```cpp
 int a[]={1,2,3};
 int a2[]=a;// 错误，没有拷贝构造函数
 a2 = a; //错误，不允许赋值
@@ -475,7 +475,7 @@ a2 = a; //错误，不允许赋值
 
 因为数组的维度是固定的，算作数组属性的一部分，编译器是知道数组大小的。  
 因此这是可以(且推荐)的
-```
+```cpp
 int array[10];
 for(auto& element:array){
     ...;
@@ -484,7 +484,7 @@ for(auto& element:array){
 - 使用begin与end访问数组的首(尾+1)元素
 
 C++11特性。  
-```
+```cpp
 int array[]={1,2,3,45};
 int *beg = begin(ia); // 指向1
 int *last = end(ia); // 指向45的下一位置。不能对last解引用！
@@ -492,7 +492,7 @@ int *last = end(ia); // 指向45的下一位置。不能对last解引用！
 - 下标和指针
 
 这里同样演示一种等价：  
-```
+```cpp
 int array[]={1,2,3,4,5};
 int *p = array;// 等价于int *p = &array[0]
 ```
@@ -507,7 +507,7 @@ array+i;
 c风格字符串即常用的字符串字面值。  
 定义在头文件\<cstring\>(c++)或\<string.h\>(c)中的方法用于支持他们。    
 C标准库的方法是：
-```
+```cpp
 strlen(p)
 strcmp(p1, p2) //p1==p2,ret=0, p1<p2 ret=-num, p1>p2,ret=+num
 strcat(p1, p2) //p1+p2
@@ -521,7 +521,7 @@ strcat要求一个新的空间，这个空间足够大，能放下p1+p2。然而
 > 这就是所谓的，C++沉重的历史包袱(的很少一部分)
 
 可以使用string.c_str()获取一个const char*，这是将string降级为c风格字符串的方法。  
-```
+```cpp
 string s("12345");
 const char *c_s=s; // 错误
 const char *c_s=s.c_str(); // 正确
@@ -529,16 +529,16 @@ const char *c_s=s.c_str(); // 正确
 ```
 ### 使用数组初始化vector对象
 使用字面值初始化vector是显然的：
-```
+```cpp
 vector<int> vec = {1,2,3,4,5};
 ```
 但是下面的做法不行：
-```
+```cpp
 int nums[]={1,2,3,4,5};
 vector<int> vec = nums;
 ```
 应该这样写：
-```
+```cpp
 int nums[]={1,2,3,4,5};
 vector<int> vec(begin(nums), end(nums));
 // 这里用cbegin和cend也可以
@@ -547,11 +547,11 @@ vector<int> vec(begin(nums), end(nums));
 vector<int> vec(nums, nums+5); // 注意是+5，即使+5访问不到.
 ```
 ### 多维数组
-```
+```cpp
 int a[2][3][4]={0}; // 这会将2*3*4都初始化为0；
 ```
 多维数组是支持范围for的：
-```
+```cpp
 int a[5][8]={0};
 for(auto &row:a){
     for(auto col:a){
@@ -569,7 +569,7 @@ for(auto &row:a){
 在C++中，比较复杂。当一个对象被用作右值时，用的是对象的值/内容，当对象被用作左值的时候，用的是对象的身份（在内存中的位置）  
 ### 求值顺序的未定义情况
 一个常见的情景：
-```
+```cpp
 int i=0;
 cout<<i<<" "<<++i<<endl;
 ```
@@ -578,7 +578,7 @@ cout<<i<<" "<<++i<<endl;
 
 ### 天然的海象表达式
 C++天然支持海象表达式：
-```
+```cpp
 int i;
 if((i=get_value())==42){
     cout<<"i is eq to 42"<<endl;
@@ -587,7 +587,7 @@ if((i=get_value())==42){
 注意赋值语句的优先级很低，因此必须加括号。
 ### 一些不清楚的运算顺序
 自增运算符与其他运算符混合，运算顺序往往都不清楚：
-```
+```cpp
 cout<<*iter++<<endl;
 // 这里会先对iter解引用，再++。
 ```
@@ -597,7 +597,7 @@ cout<<*iter++<<endl;
 
 ### 条件运算符
 C++是支持条件运算符的，享受它吧！
-```
+```cpp
 bool failed = (score<60)?true:false;
 ```
 > 你不应该嵌套条件运算符，除非你在写算法题。
@@ -612,7 +612,7 @@ bool failed = (score<60)?true:false;
 ```
 ### 类型转换: static_cast
 C风格的强制类型转换(即前置(type))非常不推荐，应该使用static_cast或reinterpret_cast取代它。  
-```
+```cpp
 double num=4.2;
 void *p=&num;
 double *dp = static_cast<double*>(p);
@@ -620,7 +620,7 @@ double *dp = static_cast<double*>(p);
 ### const_cast<type>(old_num)
 const_cast可以去掉底层const。由于const指针可以指向非const对象，因此在**必要条件**下，去掉const指针的const还是可以的（如果它实际上指向了一个非const对象）。  
 但是，如果它指向了一个const对象，使用const_cast后的写行为是非常危险的，是未定义而取决于编译器的：
-```
+```cpp
 const int num=42;
 const int *ptr=&num;
 int *new_ptr = const_cast<int*>(&num);
@@ -630,7 +630,7 @@ cout<<num<<" "<<*ptr<<" "<<*new_ptr<<endl;
 // 42 88 88
 ```
 看上去，g++守护了我们最好的const int，但是对指向该const int的指针则不然。我们不禁要问，这里发生了新的内存分配吗？我们在哪里申请了两个int的空间？  
-```
+```cpp
 const int num[]={1,2,3};
 const int *ptr=num;
 int *new_ptr = const_cast<int*>(ptr);
@@ -656,7 +656,7 @@ reinterpret_cast如其名，用于类型的重新解释，是一种低层次的�
 我们的数值实际上以字节为最小单位存放在申请的空间中，该空间被用“变量类型”(作为协议)来解释。  
 reinterpret就是用新的变量类型(新协议)来解释相同的一块内存空间。   
 这里提供一个较好的，应用了三种转换的实例：
-```
+```cpp
 string s("0123456789-abcdefgh");
 const char *s_c=s.c_str();
 char* writable_sc = const_cast<char*>(s_c);
@@ -675,7 +675,7 @@ cout<<uc_writable_sc<<" "<<writable_sc<<" "<<s_c<<" "<<s<<endl;
 结果是：
 ```
 0 48 0 48
-� -14 � 242 //在没有超出范围时，
+� -14 � 242
 � -42 � 214
 3 51 3 51
 4 52 4 52
@@ -703,7 +703,7 @@ static, reinterpret, const三种cast都发生在编译时期。
 在后面推进到虚函数时来补充。
 ## 第五章 语句
 ### switch
-```
+```cpp
 int i=0;
 switch (i){
     case 0:
@@ -721,7 +721,7 @@ switch (i){
 }
 ```
 ### do-while
-```
+```cpp
 do{
     ;;;
 }while(bool_exp)
@@ -732,12 +732,12 @@ do{
 - 使用throw抛出异常
 
 > 标准库异常定义在stdexcept头文件中
-```
+```cpp
 throw runtime_error("a runtime error msg");
 ```
 - 使用try-catch捕获异常
 
-```
+```cpp
 try{
     // 可能出现异常的代码
 } catch (runtime_error err){
@@ -760,3 +760,112 @@ length_error	通常是创建对象是给出的尺寸太大
 out_of_range	访问超界
 future_error	未知错误
 ```
+## 第六章 函数
+### 为什么const形参是可行的？
+使用实参初始化形参时，会忽略顶层const。  
+### 数组作为形参
+以下三种写法是等价的，且不会构成函数重载。   
+```cpp
+void print(const int*);
+void print(const int[]);
+void print(cost int[10]);
+```
+第三种写法暗示着作者期待一个长为10的数组传入，但C++不会为你做这样的检查。必须由作者保证不进行越界访问。  
+> 数组传参的本质是传一个int*，因此用int*替代数组传参，这更加清晰。  
+
+传递一个指针，再传递（合法的）长度，不如传递两个指针：
+```cpp
+void print(const int *beg, const int *end){
+    while(beg!=end)
+        cout<<*beg++<<endl;
+}
+```
+这是标准库容器的常见初始化方法，这很好。  
+### 不要返回局部变量的引用或指针
+在局部栈上申请的对象，如果返回对象，其实是在返回对象的拷贝，因为栈上空间会在离开栈时被回收。  
+但是编译器的实际实现却不这么做，我们来看这样的示例：
+为了方便演示，定义一个类Node，它在被创建时输出new，被销毁时输出delete。
+```cpp
+class Node
+{
+public:
+    Node()
+    {
+        cout << "new" << endl;
+    }
+    ~Node()
+    {
+        cout << "delete" << endl;
+    }
+};
+```
+如果我们在局部变量中在栈上创建一个node，并将它返回，外层的node和里层的node是同一个吗？
+```cpp
+Node ret_node()
+{
+    Node node = Node();
+    cout <<"node inside addr:"<<&node<<endl;
+    return node;
+}
+
+int main()
+{
+    Node node = ret_node();
+    cout << "outside node addr:" << &node << endl;
+}
+```
+结果是：
+```
+new
+node inside addr:0x7fff31dbe477
+outside node addr:0x7fff31dbe477
+delete
+```
+是同一个！(但是先等等，继续往下看)
+这意味着我们可以返回栈上对象的地址或指针吗？
+```cpp
+Node* ret_node()
+{
+    Node node = Node();
+    cout <<"node inside addr:"<<&node<<endl;
+    return &node;
+}
+
+int main()
+{
+    // 对被回收的对象解引用本身就是危险的！
+    Node node = *(ret_node());
+    cout << "outside node addr:" << &node << endl;
+    // node再次被析构也是危险的！
+}
+```
+结果是：
+```
+new
+node inside addr:0x7fff548910a7
+delete
+outside node addr:0x7fff548910d7
+delete
+// node只被构造了一次，但析构了两次！
+// 如果node具备堆上申请空间的数据成员，执行两次析构函数意味着segmentation fault！
+// 然而，对被回收的内存解引用本身就是危险的！
+```
+答案是绝不。并且在你尝试编译返回栈上对象地址或指针的程序时，g++会警告你：
+```
+warning: address of local variable ‘node’ returned [-Wreturn-local-addr]
+```
+> 这不是primer的内容，但是笔者在这里给出解释。
+
+> g++在做某种“偷懒”的行为(或者说是右值引用？)。事实是，你返回了一个在栈上申请的对象，按照标准，它应该在离开作用域后被回收，并重新申请空间，拷贝这个对象，以供外部访问。
+
+> 但是既然它（因为你的返回语句）被外部取得了，g++貌似选择了直接将它的内存空间的管理权限移交给外部(我们的main函数)，这就节省了重新申请内存，并对Node调用拷贝构造函数的开销。
+
+> 这是编译器的优化选择，但你不能依赖于它，因为这不是标准的一部分。标准从来没有承诺，你return的局部栈上变量的地址不会变化。
+
+> 当我们尝试(恶意地)去利用这一特性时，却没有得到预期的结果。在我们返回引用时，局部对象被回收了。我们的小聪明失败了。这很好。
+> 但我们还是要多问一句，为什么在返回引用的版本，析构函数被调用了两次呢？  
+> 我猜测和(右值引用)的判断有关。之前的优化逻辑只在用户尝试返回一个较大内存占用的对象时作用，但如果用户返回了一个地址，那拷贝与重新申请空间的开销显然不太大。此时，局部的变量离开了作用域，当然会被回收。返回了一个地址，使得没有调用Node构造函数的必要。
+> 但在外部看来，我们从一个地址(我们不知道该地址是否有效)解引用(在这里，解引用本身就是危险的！)取得了一个对象，该对象的作用域在我的栈上，当栈结束时，当然应该析构。这样，加起来就调用了两次。
+
+虽然我的编译器做了这样(右值引用)的优化，但是这是聪明的编译器才会做的，笨蛋编译器不会优化，他们会诚实地申请空间，拷贝对象，再析构栈对象，再返回新构造的对象。这样显然效率很低。因此：  
+**建议：** 不要返回大对象(数组或自定义对象)，如果编译器没有右值引用，申请空间并拷贝开销很大。请用参数传入指针或数组的方法返回结果。
