@@ -26,8 +26,8 @@ echo "without p10k, prepare to install."
 git clone --depth=1 https://gitee.com/romkatv/powerlevel10k.git $p10k_path
 fi
 # 拷贝主题配置
-cp ./p10k.zsh $HOME"/.p10k.zsh"
-cp ./zshrc.sh $HOME"/.zshrc"
+cp ./resources/p10k.zsh $HOME"/.p10k.zsh"
+cp ./resources/zshrc.sh $HOME"/.zshrc"
 echo "zsh config done."
 echo "Use 'zsh' to activate."
 # 如果在vscode中使用，搜索terminal.integrated.fontFamily，修改为MesloLGS NF
