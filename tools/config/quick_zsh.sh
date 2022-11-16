@@ -10,6 +10,7 @@ zsh_path=$(which zsh)
 if [ $? -ne 0 ];then
 echo "without zsh, prepare to install."
 sudo apt-get install zsh
+cp ./zshrc.sh $HOME"/.zshrc"
 fi
 # 切换zsh为默认终端
 chsh -s $zsh_path
@@ -17,14 +18,13 @@ chsh -s $zsh_path
 # 检查oh my zsh安装情况
 if [ ! -e $HOME"/.oh-my-zsh" ];then
 echo "without oh-my-zsh, prepare to install"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+sh -c "$(curl -fsSL https://gitee.com/mirrors/oh-my-zsh/raw/master/tools/install.sh)"
 fi
-zsh
 # 检查p10k安装情况
-p10k_path=$(which p10k)
-if [ $? -ne 0 ];then
+p10k_path=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+if [ ! -e $p10k_path ];then
 echo "without p10k, prepare to install."
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+git clone --depth=1 https://gitee.com/romkatv/powerlevel10k.git $p10k_path
 fi
 # 拷贝主题配置
 cp ./p10k.zsh $HOME"/.p10k.zsh"
