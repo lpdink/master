@@ -868,4 +868,73 @@ warning: address of local variable ‘node’ returned [-Wreturn-local-addr]
 > 但在外部看来，我们从一个地址(我们不知道该地址是否有效)解引用(在这里，解引用本身就是危险的！)取得了一个对象，该对象的作用域在我的栈上，当栈结束时，当然应该析构。这样，加起来就调用了两次。
 
 虽然我的编译器做了这样(右值引用)的优化，但是这是聪明的编译器才会做的，笨蛋编译器不会优化，他们会诚实地申请空间，拷贝对象，再析构栈对象，再返回新构造的对象。这样显然效率很低。因此：  
-**建议：** 不要返回大对象(数组或自定义对象)，如果编译器没有右值引用，申请空间并拷贝开销很大。请用参数传入指针或数组的方法返回结果。
+**建议：** 不要返回大对象(数组或自定义对象)，如果编译器没有右值引用，申请空间并拷贝开销很大。请用参数传入指针或数组的方法返回结果。\
+### 返回结果可能是左值
+```cpp
+char &get_val(string &str, string::size_type idx){
+    // 返回idx处值的引用
+    return str[idx];
+}
+int main(){
+    string s("123456");
+    get_val(s, 0)='A';
+}
+```
+### 返回列表初始化
+```cpp
+vector<string> get_string(){
+    return {"abc", "def"};// 这是被允许的
+}
+```
+### 函数重载
+只有函数形参列表构成重载，**不能根据返回值重载！**  
+const的重载：
+**顶层const不能重载(是否为常指针或常量)，底层const(指向的是常量)可以重载.**
+```cpp
+int ret_val(int num);
+int ret_val(const int num); // 不构成重载
+
+int ret_val(int *num);
+int ret_val(const int *num);// 可以重载
+```
+注意，如果同时定义了引用与常量引用，指针与const指针的两类函数，此时，规则“使用实参初始化形参时，会忽略顶层const。”，不再发挥作用。变量会调用变量版本，const会调用const版本：
+```cpp
+void show_msg(int &num){
+    cout<<"normal show_msg with "<<num<<endl;
+}
+
+void show_msg(const int &num){
+    cout<<"const int show_msg with "<<num<<endl;
+}
+int main(){
+    int num=42;
+    const int val=88;
+    show_msg(num);
+    show_msg(val);
+}
+// 结果
+// normal show_msg with 42
+// const int show_msg with 88
+```
+如果注释掉常量版本，又回到之前省略形参const的时候了：
+```
+const int show_msg with 42
+const int show_msg with 88
+```
+### const_cast与重载：格外有用
+我们常常需要为参数的const版本和非const版本提供重载，这里提供一个绝佳的实践：让非const版本调用const版本，并通过const_cast增减const。
+> 这里也说明了const_cast的作用并不仅仅是减去const，它同样可以追加const。
+```cpp
+// 比较两个string对象的长度，返回较短的
+const string &shorter(const string &s1, const string &s2){
+    return s1.size()<=s2.size()? s1:s2;
+}
+
+// 非const版本，通过const_cast加减const并调用const版本
+string &shorter(string &s1, string &s2){
+    // 这里也可以写作 auto &r=...
+    const string &r=shorter(const_cast<const string&>(s1), const_cast<const string&>(s2));
+    return const_cast<string&>(r);
+}
+```
+> 这是const_cast的绝佳使用，也说明强制类型转换并不总是坏的。  
