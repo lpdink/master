@@ -1025,3 +1025,84 @@ inline void My_inline_func(){
 
 如果你想确定一个函数是否被内联展开了，添加编译参数-save-temps=obj，这将保留预处理器结果.ii，编译器结果.s，链接结果.o。   
 **注意：** 只有使用-O2以上的优化(含)时，才会进行内联展开。  
+### assert与调试
+assert定义在头文件cassert中，是一种预处理宏，它在debug中被开启，用于检测用户定义的程序执行情况是否符合预期。  
+assert依赖于NDEBUG预处理变量，如果定义了NDEBUG，assert将什么也不做。  
+当开启release时，就开启了NDEBUG。  
+借助这个预处理变量，你也可以写一些只在debug时执行的代码。  
+```cpp
+#ifndef NDEBUG
+// __func__是编译器定义的局部静态变量，用于保存当前函数的名字
+cerr<<__func__<<endl;
+// __FILE__ 保存文件名
+// __LINE__ 保存当前行号
+// __TIME__ 保存文件编译时间
+// __DATE__ 保存文件编译日期
+```
+### 选择哪个重载函数
+由于重载和函数默认值的提供，匹配调用与函数重载的逻辑是比较复杂的，大体上是匹配最优的或最接近的。  
+但有时候还是会出现重载二义性，即编译器无法决定使用哪个函数。
+### 函数指针
+函数指针指向的是函数而非对象。  
+函数指针具备某种类型，类型由函数的返回值和形参类型共同决定，与函数名无关。  
+示例：
+```
+// 函数
+bool length_compare(const string&, const string&);
+
+// 指针
+bool (*pf)(const string&, const string&); 
+// 这样就能声明一个函数指针
+// pf两端的括号必不可少，否则它将成为函数定义。
+```
+- 使用
+```cpp
+// 可以直接将函数名赋给指针
+pf = length_compare;
+// 或者取函数地址
+pf = &length_compare;
+// 或者nullptr/0;
+
+// 调用
+// 可以直接使用函数指针调用
+bool b1 = pf("hello", "helloworld");
+// 或者解引用调用
+bool b2 = (*pf)("hello", "helloworld");
+```
+**你可以将函数指针作为函数参数使用，这就是C++将函数视为对象的方法**  
+```cpp
+// 与数组类似，直接传入一个函数是可以的，它会被视为指针
+void exec(bool pf(const string&, const string&));
+// 或者传入一个指针
+void exec(bool (*pf)(const string&, const string&));
+```
+写这样冗长的声明太糟糕了，可以替换为：
+```cpp
+// 注意decltype返回的是函数，*必不可少
+typedef decltype(length_compare) *Func; 
+// 将exec重定义为：
+void exec(Func fucn);
+
+// 或者直接写成：
+void exec(decltype(length_compare) func){}
+// 或
+void exec(decltype(length_compare) *func){}
+
+// 调用
+exec(length_compare);
+```
+- 作为返回值（返回一个函数指针）
+```cpp
+using F = int(int*, int);  //F是函数类型，不是函数指针类型
+using PF = int(*)(int *, int); //PF是函数指针类型
+```
+根据定义方法的不同，调用方法也有不同
+```cpp
+PF f1(int);
+// 或
+F *f1(int);
+// 或者不使用using：
+int (*f1(int))(int*, int);
+// 更清晰的写法是
+auto f1(int) -> int(*)(int*, int);
+```
