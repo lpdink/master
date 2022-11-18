@@ -1046,7 +1046,7 @@ cerr<<__func__<<endl;
 函数指针指向的是函数而非对象。  
 函数指针具备某种类型，类型由函数的返回值和形参类型共同决定，与函数名无关。  
 示例：
-```
+```cpp
 // 函数
 bool length_compare(const string&, const string&);
 
@@ -1092,9 +1092,14 @@ void exec(decltype(length_compare) *func){}
 exec(length_compare);
 ```
 - 作为返回值（返回一个函数指针）
+定义
 ```cpp
 using F = int(int*, int);  //F是函数类型，不是函数指针类型
 using PF = int(*)(int *, int); //PF是函数指针类型
+
+PF ret_ptr(){}
+// 或:(不推荐这一写法)
+int (*ret_ptr())(int*, int){}
 ```
 根据定义方法的不同，调用方法也有不同
 ```cpp
@@ -1105,4 +1110,29 @@ F *f1(int);
 int (*f1(int))(int*, int);
 // 更清晰的写法是
 auto f1(int) -> int(*)(int*, int);
+```
+**函数指针的最佳实践**  
+> 这是笔者本人提供的。
+
+同时有typedef和using，可以起别名或者不使用别名，函数指针的语法规范是难解的。  
+为了更好的可读性，这里提供一种最佳实践：  
+使用using定义函数别名，并始终使用该函数别名。  
+```cpp
+// 一个接受两个int，返回一个int的函数
+int get_bigger(int a, int b){
+    return a>b?a:b;
+}
+// 定义别名
+// 如果存在已有函数
+using Func=decltype(get_bigger);
+// 如果不存在一个已有函数
+using Func=int(int, int);
+
+// 存在对Func别名的三种使用：
+// 作为函数形参
+void exec(Func* func){}
+// 作为函数返回值
+Func* get_func_ptr(){}
+// 构造实参, &可加可不加.
+Func* func_ptr=&get_bigger;
 ```
