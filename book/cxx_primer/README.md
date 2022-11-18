@@ -938,3 +938,90 @@ string &shorter(string &s1, string &s2){
 }
 ```
 > 这是const_cast的绝佳使用，也说明强制类型转换并不总是坏的。  
+### 默认实参
+只出现在声明式中，多次声明对同一个形参只能配置一次默认实参。  
+### 内联函数
+inline是对编译器的一个请求，编译器可以选择忽略这个请求。  
+### constexpr函数
+能用于常量表达式的函数。  
+函数的返回值和形参必须是字面值类型（包括算术类型，引用和指针）（不包括自定义类，string等）。  
+constexpr函数的返回值不一定是常量表达式，如果将它赋值给constexpr，编译器会为你提供检查。  
+### 为什么将inline与constexpr函数定义在头文件中？
+- 必要知识
+
+inline与constexpr函数都是编译期函数。  
+编译期函数理论上(即按照标准)可以被定义多次，但是多次定义的内容必须完全相同。  
+> 实际不行，如果你尝试复制一个肯定会被展开的inline函数(甚至通过__attribute__((always_inline))保证一定展开)，GNU还是会告诉你重定义的，别想钻空子...编译器比你狡猾多了
+
+我们很少将非编译期函数定义在头文件中，因为如果这个头文件被多次包含，就会出现重定义的问题。  
+- 正文
+
+现在，我们希望一个函数被多个cpp文件使用，并且希望它被内联展开，此时，在头文件中做该函数的声明，并在某一个cpp文件中进行该函数的实现，这样的做法，能达到我们的目的吗？  
+答案是不能。inline是编译期的，如果编译器不能立即知道函数的实现(定义)，而要等到链接器阶段才能链接到函数实现。那假设编译器决定对该函数在定义文件中内联展开，你在别的地方对该inline函数的调用将undefined reference。  
+如果它没有被展开，那你定义inline也就没啥用...
+> 按照标准，应该是这样解释的。但是在GNU中，即使它最终没有被展开（例如通过inline \_\_attribute\_\_((noinline))阻止）或者使用O2以下的优化(不含)，你依然会得到undefined reference。  
+
+> 因此，extern地利用inline函数，实际上是被GNU阻止的。即使加extern都没用。  
+
+为什么会这样？  
+**分开编译，一起链接。** 编译器总是分别编译各个cpp文件，让链接器将他们链接起来。现在，你在func.cc中定义了一个inline函数（而不是头文件），并在main.cc中include func.h，并调用inline函数。  
+```cpp
+// func.h
+inline void a_inline_func();
+// func.cc
+#include "func.h"
+inline void a_inline_func(){
+    std::cout<<"a inline func msg"<<std::endl;
+}
+// main.cc
+#include "func.h"
+int main(){
+    a_inline_func();
+}
+```
+预处理器为main.cc引入了inline函数的声明，编译器编译了main.cc，它发现inline函数的声明，并期待链接器能找到一个函数实现。  
+编译器编译了func.cc函数，发现有函数是inline的，决定对它做inline展开，它在它当前能获取的范围内（即本cpp文件内）展开了该函数，**并不保存该函数的实现体**。  
+链接器开始链接两个cc文件的实现，main.cc要求inline函数的实现，但是链接器已经不能在func.cc中找到实现了。（因为被展开了。）
+这就会导致链接器抛出undefined reference。  
+如果你希望定义的函数只在本cpp文件中使用，像一般函数一样，写在本cpp文件中，声明static即可。  
+对同为编译期作用的constexpr，情况是一样的。
+### 为什么最好不要单独使用inline，而要static inline？
+> 本节只是给出一种可能性的说明，以说明为何static inline是最佳实践。GNU在实现时做了更复杂的策略，使得本节的理论无法进行实验。
+
+> 我们只能说，static inline增加了inline被展开的可能。（因为杜绝了extern调用）。事实上，如上节所述，GNU本来就是阻止extern地调用inline的。你加上static，不会有任何损失。    
+
+> 不要小看编译器。
+
+看了上一节，我们决定将inline函数的实现体放在.h文件中，这样，它被内联展开了吗？  
+答案是有可能没有，但等等，这不是因为它可能太复杂，不便inline，而是因为它可能是extern的。  
+
+inline是对编译器的建议，编译器可以不接受它。如果一个inline函数不是static的，意味着用户可能在extern作用域引用它，假如我(编译器)选择将这个函数inline了，那可能的extern还怎么获取这个函数的定义？我(编译器)当然不能背这个锅！所以，对于一切不是static的inline，对编译器而言的最简单策略是，都不进行inline。  
+
+> 参考GNU文件6.39 [An Inline Function is As Fast As a Macro](https://web.mit.edu/rhel-doc/3/rhel-gcc-en-3/inline.html)
+
+> When an inline function is not static, then the compiler must assume that there may be calls from other source files; since a global symbol can be defined only once in any program, the function must not be defined in the other source files, so the calls therein cannot be integrated. Therefore, a non-static inline function is always compiled on its own in the usual fashion.
+
+> 如果参考这个文档里的说明，单独的inline将永远不会被展开，但这是违反事实的，GNU并没有那么笨，(如果它很笨就好了，方便我们的实验)。笔者做了实验，单纯的inline是可能被展开的。    
+
+> 我们来考虑一下，什么情况下，inline关键字可以被单独使用，以说明为什么你应该永远使用static inline。
+
+> 如果实现体在头文件中（多文件使用），你写下inline，说明你希望被内联展开，此时加static将增加它被内联的概率（如果编译器决定为了extern考虑，不展开所有非static的inline得话）  
+
+> 如果实现体在cc文件中（只有本文件使用），你可以单独使用inline了，此时编译器可能展开，或者不展开该inline函数。  
+此时有个不懂inline的程序员看到了你的代码，他发现你的inline函数不是static的，他决定在他新增的代码文件中直接使用该函数。(因为他没有被static声明，是extern的！)。假如编译器展开了你的inline函数，这个可怜的人将会发现undefined reference！但他不明白，这不是extern的吗？  
+> 如果编译器没有展开，并允许extern调用了，那更糟糕，他会认为inline的函数都是可以extern使用的，假设有一天公司换了编译器，新编译器决定对你的函数进行inline展开了（或者不允许inline的extern调用了），将会出现undefined reference...
+而如果你一开始就写下static inline，暗示该程序员，别xjb用我的内部函数，也许就不会出现这这样的问题了。
+
+综上所述，你亘古不变地应该使用static inline，没有例外！  
+> 或者你可以在函数附近写下注释：
+```cpp
+// 别在外部使用这个函数！
+inline void My_inline_func(){
+    ...;
+}
+```
+> 这样也能满足你单独使用inline保留字的(奇怪)欲望...
+- 附带
+
+如果你想确定一个函数是否被内联展开了，添加编译参数-save-temps=obj，这将保留预处理器结果.ii，编译器结果.s，链接结果.o。   
+**注意：** 只有使用-O2以上的优化(含)时，才会进行内联展开。  
