@@ -992,6 +992,8 @@ int main(){
 
 > 不要小看编译器。
 
+> 本节是笔者写的，不一定是对的。
+
 看了上一节，我们决定将inline函数的实现体放在.h文件中，这样，它被内联展开了吗？  
 答案是有可能没有，但等等，这不是因为它可能太复杂，不便inline，而是因为它可能是extern的。  
 
@@ -1135,4 +1137,47 @@ void exec(Func* func){}
 Func* get_func_ptr(){}
 // 构造实参, &可加可不加.
 Func* func_ptr=&get_bigger;
+```
+## 第七章 类
+### this
+与python的self一样，this是指向当前对象的指针，可以在C++类定义内部使用。  
+```cpp
+class Counter {
+ public:
+  Counter() {}
+  void add() { this->nums += 1; }
+  int nums = 0;
+};
+// 调用
+// 在栈上创建对象的方法与python一样，只是多一个类型
+Counter counter = Counter();
+// new创建
+Counter *counter_ptr = new Counter();
+delete counter_ptr;
+counter_ptr=nullptr;// 这样回收指针指向的空间，不是delete *counter_ptr;
+// delete后面是地址。
+```
+### const成员函数
+const成员函数禁止修改类的数据成员，通过后置const声明。
+```cpp
+class Counter {
+ public:
+  Counter() {}
+  // 加在函数参数列表之后
+  // 此时修改this->nums是非法的
+  // 注意是const后置而不是前置，前置将是成员函数返回值的一部分。
+  void add()const { this->nums += 1; }
+  int nums = 0;
+};
+```
+将add声明为一个const成员函数非我们所愿，优化为:
+```cpp
+class Counter {
+ public:
+  Counter() {}
+  void add(){ this->nums += 1; }
+  int get_nums()const{return this.nums;}
+ private:
+  int nums = 0;
+};
 ```
