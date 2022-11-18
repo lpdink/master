@@ -58,7 +58,7 @@ class Ant:
             # alpha: 信息素重要程度，beta:启发式信息重要程度
             # 这里的启发式信息取当前点到目标点的直线距离的倒数
             dis_score = 1/abs_distance(new_x, new_y, END[0], END[1]) if next_pos !=END else 100
-            score = config.Alpha*tau[new_x, new_y]*config.Beta*dis_score
+            score = config.Alpha*tau[new_x, new_y]+config.Beta*dis_score
             scores.append(score)
         # 对得分归一化
         scores = np.array(scores)/np.sum(scores)
@@ -111,34 +111,36 @@ def main():
         steps.append(old_steps[slow_ptr])
         if i>loop_idx[slow_ptr] and slow_ptr<len(loop_idx)-1:
             slow_ptr+=1
-    plt.plot(list(range(config.loop)), steps)
-    plt.xlabel("loop index")
-    plt.ylabel("steps")
-    plt.savefig("conver.png")
+    # plt.plot(list(range(config.loop)), steps)
+    # plt.xlabel("loop index")
+    # plt.ylabel("steps")
+    # plt.savefig("conver.png")
     # 打印路线图
     print(minium_path)
-    rst = deepcopy(SPACE)
+    print(f"min length:{minium_path_length}")
+    rst = SPACE.tolist()
     for dot_idx in range(len(minium_path)-1):
         old_x, old_y = minium_path[dot_idx]
         new_x, new_y = minium_path[dot_idx+1]
 
         if new_x>old_x and new_y>old_y:
-            rst[old_x, old_y]="↘"
+            rst[old_x][old_y]="↘"
         elif new_x==old_x and new_y>old_y:
-            rst[old_x, old_y]="→"
+            rst[old_x][old_y]="→"
         elif new_x>old_x and new_y==old_y:
-            rst[old_x, old_y]="↓"
+            rst[old_x][old_y]="↓"
         elif new_x<old_x and new_y==old_y:
-            rst[old_x, old_y]="↑"
+            rst[old_x][old_y]="↑"
         elif new_x==old_x and new_y<old_y:
-            rst[old_x, old_y]="←"
+            rst[old_x][old_y]="←"
         elif new_x>old_x and new_y<old_y:
-            rst[old_x, old_y]="↙"
+            rst[old_x][old_y]="↙"
         elif new_x<old_x and new_y>old_y:
-            rst[old_x, old_y]="↗"
+            rst[old_x][old_y]="↗"
         elif new_x<old_x and new_y<old_y:
-            rst[old_x, old_y]="↖"
-    print(rst)
+            rst[old_x][old_y]="↖"
+    for item in rst:
+        print(" ".join([str(c) for c in item]))
 
 
 
