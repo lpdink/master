@@ -31,3 +31,6 @@ nvcc_path=$(nvcc -V)
 if [ $? -ne 0 ];then
 sudo apt-get install nvidia-cuda-toolkit
 fi
+
+# gdb
+# sudo apt-get install gdb

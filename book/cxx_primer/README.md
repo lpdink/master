@@ -1181,3 +1181,77 @@ class Counter {
   int nums = 0;
 };
 ```
+常量对象，常量对象的引用，指向常量对象的指针，都只能调用const成员函数。  
+### 在类的外部定义函数
+成员函数的声明一定要在类体内，但可以在外部定义。  
+规范是：  
+```cpp
+// 类型 类名::方法名(方法参数列表) [const]{}
+int Counter::get_nums()const{
+    return this->nums;
+}
+```
+### 返回this
+可以让add方法返回this:
+```cpp
+Counter& Counter::add(){
+    this->nums+=1;
+    return *this;
+}
+```
+### 构造函数
+构造函数不能是const的。  
+如果定义了一个构造函数，编译器就不会生成默认构造函数。最佳实践是，总是显式地定义构造函数，即使什么也不做。  
+> 如果一个类在某种情况下需要控制对象初始化，那么该类很可能在所有情况下都需要控制。  
+```cpp
+// 快捷显式定义构造函数
+class Node{
+    public:
+        Node() = default;
+}
+```
+- 使用初始化列表
+
+初始化参数列表是被effective推荐的最佳实践
+```cpp
+class Student
+{
+public:
+    // 语法：
+    // 类名(形参列表):属性1(形参1), 属性2(形参2)...{}
+    // 形参可以与实参的名字相同或不同，编译器能正确区分他们.
+    Student(const std::string name, const unsigned int age, const unsigned int id, float score) : name(name), age(age), number(id), score(score) {}
+private:
+    const std::string name;
+    const unsigned int age;
+    const unsigned int number;
+    float score;
+};
+```
+### 拷贝、幅值与析构
+编译器会生成默认的拷贝赋值与析构函数，但默认的函数并不总是有效的，尤其在类内存在动态内存分配时，要保证正确地回收对象的内存，必须自行定义析构函数。  
+在需要深拷贝的情况下，默认的拷贝构造函数也不能作用。  
+TODO：等待后续补充。
+### struct
+除了语法,struct与class唯一的区别在于struct的默认权限是public的,class则是private的。  
+> 在C++中，不需要使用struct。
+### 友元函数
+我们希望我们定义的一些函数能否访问类的私有成员或函数，可以将这些外部函数声明为友元函数。  
+> 不要这么做，这在破坏封装性.  
+
+```cpp
+class Student
+{
+public:
+    friend void show_info(const Student* ptr);
+private:
+    const std::string name;
+    const unsigned int age;
+    const unsigned int number;
+    float score;
+};
+void show_info(const Student* ptr)
+    {
+        std::cout << __func__ << "\n name:" << ptr->name << " age:" << ptr->age << " number:" << ptr->number << std::endl;
+    }
+```
