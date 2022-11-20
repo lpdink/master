@@ -2,7 +2,7 @@
     "loop":100,
     "ants_num":50,
     "Alpha":1,
-    "Beta":7,
+    "Beta":10,
     "Rho":0.3,
     "Q":1
 }

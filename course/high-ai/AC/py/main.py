@@ -1,4 +1,4 @@
-from utils import config,abs_distance
+from utils import config,abs_distance,get_path_length
 from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +24,8 @@ def read_space():
 SPACE, START, END = read_space()
 # 初始化信息素矩阵
 tau = np.ones_like(SPACE, dtype=np.float32)*8
+# 下一轮要增加的信息素
+next_tau_plus = np.ones_like(tau)
 
 class Ant:
     def __init__(self, pos) -> None:
@@ -35,8 +37,8 @@ class Ant:
     def move(self):
         # 蚂蚁移动一步,允许斜走，8种可能的移动方法
         possible_next_pos = []
-        for idx in range(-1, 2):
-            for jdx in range(-1, 2):
+        for idx in range(1, -2, -1):
+            for jdx in range(1, -2, -1):
                 # 不允许不移动
                 if idx==0 and jdx==0:
                     continue
@@ -57,8 +59,8 @@ class Ant:
             new_x, new_y = next_pos
             # alpha: 信息素重要程度，beta:启发式信息重要程度
             # 这里的启发式信息取当前点到目标点的直线距离的倒数
-            dis_score = 1/abs_distance(new_x, new_y, END[0], END[1]) if next_pos !=END else 100
-            score = config.Alpha*tau[new_x, new_y]+config.Beta*dis_score
+            dis_score = 1/abs_distance((new_x, new_y), (END[0], END[1])) if next_pos !=END else 100
+            score = (tau[new_x, new_y]**config.Alpha)*(dis_score**config.Beta)
             scores.append(score)
         # 对得分归一化
         scores = np.array(scores)/np.sum(scores)
@@ -77,51 +79,59 @@ class Ant:
         # 如果到达终点，留下信息素
         if self.pos==END:
             for idx, pos in enumerate(self.path):
-                tau[pos]+=config.Q/(idx+1)
+                next_tau_plus[pos]+=config.Q/(idx+1)
             return self.path, False
         return None, True
     
 
 def main():
-    path_length = []
-    minium_path = None
-    minium_path_length = np.inf
-    global tau
-    ants = [Ant(START) for _ in range(config.ants_num)]
+    path_lengths = []
+    paths = []
+    global_minium_path = None
+    global tau, next_tau_plus
     for loop_idx in range(config.loop):
+        loop_minium_path = None
+        loop_minium_path_length = np.inf
         for _ in range(config.ants_num):
             ant_loop = True
             ant = Ant(START)
             while ant_loop:
                 path, ant_loop = ant.move()
                 if path is not None:
-                    path_length.append((loop_idx, len(path)))
-                    if len(path)<minium_path_length:
-                        minium_path_length = len(path)
-                        minium_path = path
-
-        # 信息素挥发
-        tau = (1-config.Rho)*tau
+                    path_length = get_path_length(path)
+                    if loop_minium_path is None or path_length<loop_minium_path_length:
+                        loop_minium_path = path
+                        loop_minium_path_length = get_path_length(loop_minium_path)
+        # 信息素挥发并增加
+        tau = (1-config.Rho)*tau+next_tau_plus
+        next_tau_plus = np.zeros_like(tau)
+        if loop_minium_path is not None:
+            paths.append(loop_minium_path)
+            path_lengths.append((loop_idx, loop_minium_path_length))
+            if global_minium_path is None or loop_minium_path_length<get_path_length(global_minium_path):
+                global_minium_path = loop_minium_path
+    
     # 绘制收敛曲线
-    loop_idx = [item[0] for item in path_length]
-    old_steps = [item[1] for item in path_length]
+    loop_idx = [item[0] for item in path_lengths]
+    old_steps = [item[1] for item in path_lengths]
     steps = []
     slow_ptr = 0
     for i in range(config.loop):
         steps.append(old_steps[slow_ptr])
         if i>loop_idx[slow_ptr] and slow_ptr<len(loop_idx)-1:
             slow_ptr+=1
-    # plt.plot(list(range(config.loop)), steps)
-    # plt.xlabel("loop index")
-    # plt.ylabel("steps")
-    # plt.savefig("conver.png")
+    plt.plot(list(range(config.loop)), steps)
+    plt.xlabel("loop index")
+    plt.ylabel("steps")
+    plt.ylim(0, 50)
+    plt.savefig("conver.png")
     # 打印路线图
-    print(minium_path)
-    print(f"min length:{minium_path_length}")
+    print(global_minium_path)
+    print(f"min length:{get_path_length(global_minium_path)}")
     rst = SPACE.tolist()
-    for dot_idx in range(len(minium_path)-1):
-        old_x, old_y = minium_path[dot_idx]
-        new_x, new_y = minium_path[dot_idx+1]
+    for dot_idx in range(len(global_minium_path)-1):
+        old_x, old_y = global_minium_path[dot_idx]
+        new_x, new_y = global_minium_path[dot_idx+1]
 
         if new_x>old_x and new_y>old_y:
             rst[old_x][old_y]="↘"
