@@ -1280,6 +1280,8 @@ inline是对编译器的建议，编译器可以不接受它。如果一个inlin
 而如果你一开始就写下static inline，暗示该程序员，别xjb用我的内部函数，也许就不会出现这这样的问题了。
 
 综上所述，你亘古不变地应该使用static inline，没有例外！  
+> 有一个例外，你在声明一个类的成员函数，且希望它被内联。你不能将它声明为static的，这将使它成为类函数而失去this指针。  
+
 > 或者你可以在函数附近写下注释：
 
 ```cpp
@@ -1452,7 +1454,8 @@ counter_ptr=nullptr;// 这样回收指针指向的空间，不是delete *counter
 
 ### const成员函数
 
-const成员函数禁止修改类的数据成员，通过后置const声明。
+const成员函数禁止修改类的数据成员，通过后置const声明。  
+如果一个成员函数不进行对数据成员的修改，你就应该将它声明为const成员函数。例如一些打印信息的方法。  
 
 ```cpp
 class Counter {
@@ -1480,6 +1483,7 @@ class Counter {
 ```
 
 常量对象，常量对象的引用，指向常量对象的指针，都只能调用const成员函数。  
+const成员函数，或者不是const的成员函数，可以以此进行函数重载。  
 
 ### 在类的外部定义函数
 
@@ -1504,6 +1508,19 @@ Counter& Counter::add(){
 }
 ```
 
+这方便于连续调用方法：
+
+```cpp
+counter.add().add().add();
+```
+
+返回引用对于连续调用方法是必须的，如果返回值是Counter，相当于：
+
+```cpp
+// 这将创建对counter的浅拷贝
+Counter tmp = counter.add();
+```
+
 ### 构造函数
 
 构造函数不能是const的。  
@@ -1520,7 +1537,9 @@ class Node{
 
 - 使用初始化列表
 
-初始化参数列表是被effective推荐的最佳实践
+初始化参数列表是被effective推荐的最佳实践，这将只有初始化一个开销。  
+如果你使用赋值的方法，需要先进行初始化，再进行赋值，开销比较大。  
+对const数据成员，只能通过初始化参数列表进行初始化，而不能通过在构造函数中赋值。  
 
 ```cpp
 class Student
@@ -1570,3 +1589,213 @@ void show_info(const Student* ptr)
         std::cout << __func__ << "\n name:" << ptr->name << " age:" << ptr->age << " number:" << ptr->number << std::endl;
     }
 ```
+
+### 友元类
+
+与友元函数类似，这将允许友元类访问本类的私有成员。
+
+```cpp
+class Teacher{
+    public:
+        void show_info(const Student* ptr)
+        {
+            std::cout << __func__ << "\n name:" << ptr->name << " age:" << ptr->age << " number:" << ptr->number << std::endl;
+        }
+};
+class Student
+{
+public:
+    friend class Teacher;
+    // 可以只赋予teacher的show_info方法友元权限，但这要求方法必须先声明。
+    // friend void Teacher::show_info(const Student*);
+    // 如果要赋予友元的函数进行了重载
+
+private:
+    const std::string name;
+    const unsigned int age;
+    const unsigned int number;
+    float score;
+};
+```
+
+### 内联的成员函数
+
+如果一个成员函数不是类成员函数，那应该使用inline而不是static inline，static声明将使得函数失去this指针。
+
+```cpp
+class Node{
+    public:
+        Node(int number, string name):number(number),name(name){}
+        // it's ok
+        inline void show_info(){
+            cout<<"number:"<<this->number<<" name:"<<this->name<<endl;
+        }
+        // illegal:class function don't have this ptr;
+        // static inline void show_info(){
+        //     cout<<"number:"<<this->number<<" name:"<<this->name<<endl;
+        // }
+    private:
+        int number;
+        string name;
+};
+```
+
+### mutable
+
+当你希望一个数据成员可以被const成员函数修改时，将它声明为mutable的。  
+
+```cpp
+class Node{
+    public:
+        Node(int number, string name):number(number),name(name){}
+        void set_name(std::string new_name)const{
+            this->name=new_name;
+        }
+    private:
+        int number;
+        mutable string name;
+};
+```
+
+### 类成员初始值
+
+希望为类的数据成员提供初始值时，必须使用=或花括号{}。  
+这是说，你不能使用()。
+
+```cpp
+class Node{
+    public:
+        // error:
+        // string name("Node");
+        string name{"name"};
+};
+```
+
+### 委托构造函数
+
+构造函数将部分构造功能委托给另一个构造函数，这就是委托构造函数。  
+用在提供多种构造函数时，存在部分数据成员的初始化方法相同。  
+
+```cpp
+class Node{
+    public:
+        Node(string name, int num):name(name), num(num){}
+        Node(string name):Node(name, 0){}
+        // 但是，这可以通过给上一个构造函数默认值来完成...
+    private:
+        string name;
+        int num;
+};
+```
+
+### 转换构造函数与隐式的类类型转换
+
+如果一个构造函数只定义了一个参数，那它实际上是一个转换构造函数。  
+这十分有用，在函数要求类型时，可以将那个参数的类型给进去。  
+> 这也帮助我们理解隐式转换的实质，只不过是构造函数而已，编译器帮你顺手做了一下构造。  
+
+> 这也解释了为何有时不能进行隐式转换，必须进行显示转换：要转换到的类，没有提供对应的单参数构造函数（转换构造函数。）
+
+```cpp
+class Node{
+    public:
+        Node(string name):name(name){}
+        string name;
+};
+
+void show_name(const Node &node){
+    cout<<node.name<<endl;
+}
+
+int main(){
+    string s{"我下午要玩戴森球计划"};
+    show_name(s);
+}
+```
+
+### 使用explicit阻止隐式的类型转换
+
+很多时候我们不想单参数的构造函数用作转换构造函数，即，我们不希望隐式地创建对象。要阻止编译器为你做这样的转换工作，在**声明**单参数构造函数时，添加explicit声明。  
+Note：
+
+- explicit只对单参数构造函数有用。
+- 只能放在函数声明处，不能放在定义处。
+- 如果在声明处定义，也ok。
+- explicit不会阻止显式的构造或强制类型转换
+
+```cpp
+
+class Node{
+    public:
+        explicit Node(string name):name(name){}
+        string name;
+};
+
+void show_name(const Node &node){
+    cout<<node.name<<endl;
+}
+
+int main(){
+    string s{"我下午要玩戴森球计划"};
+    // error:
+    // show_name(s);
+    Node node = Node(s);
+    show_name(node);
+    show_name(Node(s));
+    // 但是允许显式的强制类型转换
+    show_name(static_cast<Node>(s));
+}
+```
+
+转换构造函数允许一步转换，但是不会允许多步转换。假设有一个函数需要std::string，你可以用字面值const char*来作为实参。  
+我们上面例子的show_name接受Node类型，如果没有explicit声明，它可以接受一个std::string，但是不能接受一个const char* 字面量。那就是两步转换了。  
+
+### 聚合类
+
+允许用户直接访问其成员，且具备特殊的初始化语法。满足以下特点：
+
+- 所有成员都是public的
+- 没有定义任何构造函数
+- 没有类内初始值
+- 没有基类，也没有virtual函数。
+
+> 不必记忆它不是什么，最好记忆它是什么。聚合类表现为一组数据成员的组合，可以通过花括号{}进行初始化。  
+
+```cpp
+class Data{
+    public:
+        string name;
+        long long id;
+};
+// 或者使用struct,好处很明显，你不用打public了。
+// 这可能是struct唯一在c++的作用。
+Data data = {"pudding", 114514};
+```
+
+### constexpr构造函数
+
+构造函数可以用constexpr修饰，随后，它必须初始化所有数据成员。  
+> 弄不懂何时使用。
+
+TODO:constexpr构造函数
+
+### 类的静态成员
+
+类的静态成员函数不能获取this指针，也不能被声明为const的。
+可以通过对象或类来访问静态成员。  
+静态成员在类内是直接可见的，不用通过this等访问。  
+
+可以在类的内外定义静态成员函数，但在外部定义时，不能重复static关键词。（就像你不能重复explicit关键词一样）  
+你不能在类内直接为一个static数据成员初始化，除非它是const的。
+
+```cpp
+class Node{
+    public:
+        const static int num=1;
+        static int id;
+};
+
+int Node::id=1;
+```
+
+静态成员可以作为默认实参，但对象的成员不可以，因为对象的成员属于对象。  
