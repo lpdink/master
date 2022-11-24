@@ -1,0 +1,10 @@
+{
+    "d_model":300,
+    "n_head":6,
+    "encoder_layers":6,
+    "decoder_layer":6,
+    "dim_feedforward":2048,
+    "drop_out":0.1,
+    "seq_length":256,
+    "batch_size":16
+}
