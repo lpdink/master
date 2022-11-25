@@ -6,5 +6,9 @@
     "dim_feedforward":2048,
     "drop_out":0.1,
     "seq_length":256,
-    "batch_size":16
+    "batch_size":128,
+    "train_pert":0.8,
+    "test_pert":0.1,
+    "zh_path":"/home/lpdink/github/master/course/nlp/resources/.corpus/zh_corpus_preprocess.txt",
+    "en_path":"/home/lpdink/github/master/course/nlp/resources/.corpus/en_corpus_preprocess.txt"
 }

@@ -1,0 +1,2 @@
+[2022-11-25 20:16:15,065 INFO /home/lpdink/github/master/course/nlp/src/dataset.py:21] loading /home/lpdink/github/master/course/nlp/resources/.corpus/zh_corpus_preprocess.txt
+[2022-11-25 20:17:18,355 INFO /home/lpdink/github/master/course/nlp/src/dataset.py:21] loading /home/lpdink/github/master/course/nlp/resources/.corpus/en_corpus_preprocess.txt
