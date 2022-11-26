@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils import config
 
+
 class PositionalEncoding(nn.Module):
     # 参考自torch的example: https://github.com/pytorch/examples/blob/main/word_language_model/model.py
     r"""Inject some information about the relative or absolute position of the tokens in the sequence.
@@ -27,11 +28,13 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         r"""Inputs of forward function
@@ -44,26 +47,63 @@ class PositionalEncoding(nn.Module):
             >>> output = pos_encoder(x)
         """
 
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
 
 class Transformer(torch.nn.Module):
-    def __init__(self, config) -> None:
+    def __init__(self, src_vocab_num, dst_vocab_num, config) -> None:
         super().__init__()
-        self.transformer = torch.nn.Transformer(config.d_model, config.nhead, config.encoder_layers, config.decoder_layers, config.dim_feedforward, config.dropout)
-        self.decoder_mask = torch.nn.Transformer.generate_square_subsequent_mask(config.seq_length)
-        self.pos_encoder = PositionalEncoding(config.d_model, config.dropout, config.seq_length)
+        self.transformer = torch.nn.Transformer(
+            config.d_model,
+            config.n_head,
+            config.encoder_layers,
+            config.decoder_layers,
+            config.dim_feedforward,
+            config.dropout,
+        )
+        self.pos_encoder = PositionalEncoding(config.d_model, config.dropout)
+        self.encoder_embedding = nn.Embedding(src_vocab_num, config.d_model)
+        self.decoder_embedding = nn.Embedding(dst_vocab_num, config.d_model)
+        self.linear = nn.Linear(config.d_model, dst_vocab_num)
 
-    def forward(self, src, tgt, encoder_mask):
+    def forward(self, src, dst, dst_mask, src_padding_mask, dst_padding_mask):
         """
-            src: encoder输入，源语言序列，[sequence length, batch size, embed dim]
-            tgt: decoder输入，目标语言序列，[sequence length, batch size, embed dim]
-            src输入被padding到256，以便放入定长的tensor，对padding部分，进行-inf掩码
-            tgt总是concat一个全0向量作为开始，再进行掩码
+        机器翻译任务的特性，源语言在推理时是完全可见的，无需padding
         """
+        src = self.encoder_embedding(src)
         src = self.pos_encoder(src)
-        return self.transformer(src, tgt, src_key_padding_mask=encoder_mask, tgt_key_padding_mask=self.decoder_mask)
+        dst = self.decoder_embedding(dst)
+        dst = self.pos_encoder(dst)
+        transformer_out = self.transformer(
+            src,
+            dst,
+            tgt_mask=dst_mask,
+            src_key_padding_mask=src_padding_mask,
+            tgt_key_padding_mask=dst_padding_mask,
+        )
+        output = self.linear(transformer_out)
 
-    def infer(self):
-        return 
+        return output
+
+    def infer(self, src, start_id, end_id, max_len):
+        self.eval()
+        with torch.no_grad():
+            src = src.reshape((-1, 1)) # batch=1
+            src_embed = self.encoder_embedding(src)
+            src_embed = self.pos_encoder(src_embed)
+            encoder_out = self.transformer.encoder(src_embed)
+            decoder_input = torch.ones((1,), dtype=torch.int).fill_(start_id)
+            for _ in range(max_len):
+                decoder_input = decoder_input.reshape(-1, 1)
+                dst_embed = self.decoder_embedding(decoder_input)
+                dst_embed = self.pos_encoder(dst_embed)
+                # 取decoder的最后一位输出
+                decoder_out = self.transformer.decoder(dst_embed, encoder_out)
+                decoder_out = decoder_out[-1:]
+                y_hat = torch.argmax(self.linear(decoder_out))
+                # breakpoint()
+                decoder_input = torch.concat((decoder_input, y_hat.unsqueeze(0).reshape(-1, 1)))
+                if y_hat.item()==end_id:
+                    break
+        return decoder_input

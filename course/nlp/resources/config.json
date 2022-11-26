@@ -1,14 +1,19 @@
 {
-    "d_model":300,
-    "n_head":6,
+    "d_model":512,
+    "n_head":8,
     "encoder_layers":6,
-    "decoder_layer":6,
+    "decoder_layers":6,
     "dim_feedforward":2048,
-    "drop_out":0.1,
-    "seq_length":256,
-    "batch_size":128,
+    "dropout":0.1,
+    "batch_size":16,
     "train_pert":0.8,
     "test_pert":0.1,
     "zh_path":"/home/lpdink/github/master/course/nlp/resources/.corpus/zh_corpus_preprocess.txt",
-    "en_path":"/home/lpdink/github/master/course/nlp/resources/.corpus/en_corpus_preprocess.txt"
+    "en_path":"/home/lpdink/github/master/course/nlp/resources/.corpus/en_corpus_preprocess.txt",
+    "device":"cuda:0",
+    "beta1":0.9,
+    "beta2":0.98,
+    "epsilon":10e-9,
+    "model_path":"/home/lpdink/github/master/course/nlp/resources/model/en2zh.pkl",
+    "epochs":10
 }

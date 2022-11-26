@@ -108,3 +108,6 @@ class TranslationData:
             self.valid_data, batch_size=config.batch_size, shuffle=True
         )
         return train_loader, test_loader, valid_loader
+
+    def get_padding_mask(self, src_tensor, dst_tensor):
+        return (src_tensor==self.src_data_obj.get_id("<pad>")).transpose(0, 1), (dst_tensor==self.dst_data_obj.get_id("<pad>")).transpose(0, 1)
