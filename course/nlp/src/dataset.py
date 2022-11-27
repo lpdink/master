@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 from utils import config, logging
 
@@ -13,7 +14,7 @@ class CorpusData:
         with open(file_path, "r", encoding="utf-8") as file:
             lines = file.readlines()
         # 构建词表
-        symbols = ["<bos>", "<eos>", "<pad>", "<unk>"]
+        symbols = ["<unk>", "<bos>", "<eos>", "<pad>"]
         word2id = {word: id for id, word in enumerate(symbols)}
         id2word = {id: word for id, word in enumerate(symbols)}
         split_sents = []
@@ -71,20 +72,14 @@ class TranslationData:
         train_data, test_data, valid_data = [], [], []
         sent_num = len(self.src_data_obj)
         index = 0
-        for src_words, dst_words in tqdm(zip(self.src_data_obj, self.dst_data_obj),total=len(self.src_data_obj)):
+        for src_words, dst_words in tqdm(
+            zip(self.src_data_obj, self.dst_data_obj), total=len(self.src_data_obj)
+        ):
             src_tensor = torch.tensor(
-                [self.src_data_obj.get_id("<bos>")]
-                + [self.src_data_obj.get_id(word) for word in src_words]
-                + [self.src_data_obj.get_id("<eos>")]
-                + [self.src_data_obj.get_id("<pad>")]
-                * (self.src_data_obj.max_words - len(src_words))
+                [self.src_data_obj.get_id(word) for word in src_words]
             )
             dst_tensor = torch.tensor(
-                [self.dst_data_obj.get_id("<bos>")]
-                + [self.dst_data_obj.get_id(word) for word in dst_words]
-                + [self.dst_data_obj.get_id("<eos>")]
-                + [self.dst_data_obj.get_id("<pad>")]
-                * (self.dst_data_obj.max_words - len(dst_words))
+                [self.dst_data_obj.get_id(word) for word in dst_words]
             )
             if (index / sent_num) < config.train_pert:
                 train_data.append((src_tensor, dst_tensor))
@@ -97,17 +92,28 @@ class TranslationData:
         self.test_data = test_data
         self.valid_data = valid_data
 
+    def process_batch(self, old_batch):
+        new_src, new_dst= [], []
+        for src, dst in old_batch:
+            new_src.append(src)
+            new_dst.append(torch.cat((torch.tensor([self.dst_data_obj.get_id("<bos>")]), dst, torch.tensor([self.dst_data_obj.get_id("<eos>")]))))
+        new_src = pad_sequence(new_src, padding_value=self.src_data_obj.get_id("<pad>"))
+        new_dst = pad_sequence(new_dst, padding_value=self.dst_data_obj.get_id("<pad>"))
+        return new_src, new_dst
+
     def get_data(self):
         train_loader = DataLoader(
-            self.train_data, batch_size=config.batch_size, shuffle=True
+            self.train_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
         )
         test_loader = DataLoader(
-            self.test_data, batch_size=config.batch_size, shuffle=True
+            self.test_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
         )
         valid_loader = DataLoader(
-            self.valid_data, batch_size=config.batch_size, shuffle=True
+            self.valid_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
         )
         return train_loader, test_loader, valid_loader
 
     def get_padding_mask(self, src_tensor, dst_tensor):
-        return (src_tensor==self.src_data_obj.get_id("<pad>")).transpose(0, 1), (dst_tensor==self.dst_data_obj.get_id("<pad>")).transpose(0, 1)
+        return (src_tensor == self.src_data_obj.get_id("<pad>")).transpose(0, 1), (
+            dst_tensor == self.dst_data_obj.get_id("<pad>")
+        ).transpose(0, 1)

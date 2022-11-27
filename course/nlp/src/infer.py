@@ -25,7 +25,7 @@ def main():
     logging.info(f"Loading weights from {config.model_path}")
     paras = torch.load(config.model_path)
     model.load_state_dict(paras)
-    output_tensor = model.infer(input_tensor, zh_word2id["<pad>"], zh_word2id["<eos>"], 50)
+    output_tensor = model.infer(input_tensor, 1, zh_word2id["<eos>"], 50)
     print(output_tensor)
     breakpoint()
 
