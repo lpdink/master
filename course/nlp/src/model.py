@@ -81,6 +81,7 @@ class Transformer(torch.nn.Module):
             tgt_mask=dst_mask,
             src_key_padding_mask=src_padding_mask,
             tgt_key_padding_mask=dst_padding_mask,
+            memory_key_padding_mask=src_padding_mask
         )
         output = self.linear(transformer_out)
 
