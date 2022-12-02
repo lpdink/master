@@ -105,13 +105,13 @@ class TranslationData:
         train_loader = DataLoader(
             self.train_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
         )
-        test_loader = DataLoader(
-            self.test_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
-        )
-        valid_loader = DataLoader(
-            self.valid_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
-        )
-        return train_loader, test_loader, valid_loader
+        # test_loader = DataLoader(
+        #     self.test_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
+        # )
+        # valid_loader = DataLoader(
+        #     self.valid_data, batch_size=config.batch_size, shuffle=True, collate_fn=self.process_batch
+        # )
+        return train_loader#, test_loader, valid_loader
 
     def get_padding_mask(self, src_tensor, dst_tensor):
         return (src_tensor == self.src_data_obj.get_id("<pad>")).transpose(0, 1), (

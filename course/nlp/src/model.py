@@ -50,6 +50,20 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
+class TokenEmbedding(nn.Module):
+    def __init__(self, vocab_size: int, emb_size):
+        super(TokenEmbedding, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, emb_size)
+        self.emb_size = emb_size
+
+    """
+        :param tokens: shape : [len, batch_size]
+        :return: shape: [len, batch_size, emb_size]
+        """
+
+    def forward(self, tokens):
+        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+
 
 class Transformer(torch.nn.Module):
     def __init__(self, src_vocab_num, dst_vocab_num, config) -> None:
@@ -63,9 +77,10 @@ class Transformer(torch.nn.Module):
             config.dropout,
         )
         self.pos_encoder = PositionalEncoding(config.d_model, config.dropout)
-        self.encoder_embedding = nn.Embedding(src_vocab_num, config.d_model)
-        self.decoder_embedding = nn.Embedding(dst_vocab_num, config.d_model)
+        self.encoder_embedding = TokenEmbedding(src_vocab_num, config.d_model) 
+        self.decoder_embedding = TokenEmbedding(dst_vocab_num, config.d_model)
         self.linear = nn.Linear(config.d_model, dst_vocab_num)
+        self._reset_parameters()
 
     def forward(self, src, dst, dst_mask, src_padding_mask, dst_padding_mask):
         """
@@ -94,7 +109,7 @@ class Transformer(torch.nn.Module):
             src_embed = self.encoder_embedding(src)
             src_embed = self.pos_encoder(src_embed)
             encoder_out = self.transformer.encoder(src_embed)
-            decoder_input = torch.ones((1,), dtype=torch.int).fill_(start_id)
+            decoder_input = torch.ones((1,1), dtype=torch.long).fill_(start_id)
             for _ in range(max_len):
                 decoder_input = decoder_input.reshape(-1, 1)
                 dst_embed = self.decoder_embedding(decoder_input)
@@ -105,6 +120,15 @@ class Transformer(torch.nn.Module):
                 y_hat = torch.argmax(self.linear(decoder_out))
                 # breakpoint()
                 decoder_input = torch.concat((decoder_input, y_hat.unsqueeze(0).reshape(-1, 1)))
-                # if y_hat.item()==end_id:
-                #     break
+                if y_hat.item()==end_id:
+                    break
         return decoder_input
+
+    def _reset_parameters(self):
+        r"""Initiate parameters in the transformer model."""
+        """
+        初始化
+        """
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)

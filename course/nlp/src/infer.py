@@ -23,7 +23,7 @@ def get_input_tensor(sent):
 def load_model():
     model = Transformer(len(en_word2id), len(zh_word2id),config)
     logging.info(f"Loading weights from {config.model_path}")
-    paras = torch.load("/mnt/data/xiaozeyu/master/course/nlp/resources/all_model/en2zh.pkl_10")
+    paras = torch.load(config.model_path)
     model.load_state_dict(paras)
     return model
 
@@ -44,7 +44,6 @@ def main():
     # sent = "A Climate Deal is Not Enough"
     sents = [
         "More broadly, Japanese companies have to organize for performance and discipline.",
-        "China apple Japan.",
         "A Climate Deal is Not Enough",
         "In many emerging markets, a lack of political freedom adds to the combustible mix.",
         "The combination of corruption, inequality, and political repression builds up enormous pressure, and there are no institutional channels through which to release it.",

@@ -5,43 +5,22 @@ from dataset import CorpusData, TranslationData
 from model import Transformer
 from utils import config, zh_tokenizer, en_tokenizer, logging
 
-class ScheduledOptim:
-    # reference from https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/master/transformer/Optim.py
-    '''A simple wrapper class for learning rate scheduling'''
+class CustomSchedule(object):
+    def __init__(self, d_model, warmup_steps=4000, optimizer=None):
+        super(CustomSchedule, self).__init__()
+        self.d_model = torch.tensor(d_model, dtype=torch.float32)
+        self.warmup_steps = warmup_steps
+        self.steps = 1.
+        self.optimizer = optimizer
 
-    def __init__(self, optimizer, lr_mul, d_model, n_warmup_steps):
-        self._optimizer = optimizer
-        self.lr_mul = lr_mul
-        self.d_model = d_model
-        self.n_warmup_steps = n_warmup_steps
-        self.n_steps = 0
-
-
-    def step_and_update_lr(self):
-        "Step with the inner optimizer"
-        self._update_learning_rate()
-        self._optimizer.step()
-
-
-    def zero_grad(self):
-        "Zero out the gradients with the inner optimizer"
-        self._optimizer.zero_grad()
-
-
-    def _get_lr_scale(self):
-        d_model = self.d_model
-        n_steps, n_warmup_steps = self.n_steps, self.n_warmup_steps
-        return (d_model ** -0.5) * min(n_steps ** (-0.5), n_steps * n_warmup_steps ** (-1.5))
-
-
-    def _update_learning_rate(self):
-        ''' Learning rate scheduling per step '''
-
-        self.n_steps += 1
-        lr = self.lr_mul * self._get_lr_scale()
-
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
+    def step(self):
+        arg1 = self.steps ** -0.5
+        arg2 = self.steps * (self.warmup_steps ** -1.5)
+        self.steps += 1.
+        lr = (self.d_model ** -0.5) * min(arg1, arg2)
+        for p in self.optimizer.param_groups:
+            p['lr'] = lr
+        return lr
 
 def accuracy(logits, y_true, PAD_IDX):
     """
@@ -66,7 +45,8 @@ def main():
     zh_corpus = CorpusData(config.zh_path, zh_tokenizer)
     en_corpus = CorpusData(config.en_path, en_tokenizer)
     dataset = TranslationData(en_corpus, zh_corpus)
-    train_loader, test_loader, valid_loader = dataset.get_data()
+    # train_loader, test_loader, valid_loader = dataset.get_data()
+    train_loader = dataset.get_data()
     zh_vocab = zh_corpus.get_vocab()
     en_vocab = en_corpus.get_vocab()
     with open("./zh_vocab", "w", encoding="utf-8") as file:
@@ -82,7 +62,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.,
                                  betas=(config.beta1, config.beta2), eps=config.epsilon)
-    lr_scheduler = ScheduledOptim(optimizer, 1, config.d_model, 4000)
+    lr_scheduler = CustomSchedule(config.d_model, optimizer=optimizer)
     model.train()
     try:
         for epoch in range(config.epochs):
@@ -105,16 +85,19 @@ def main():
                 # logging.info(output.shape)
                 # logging.info(dst)
                 # exit()
+                # print([en_corpus.get_word(idx) for idx in src.tolist()[0]])
+                # print([zh_corpus.get_word(idx) for idx in dst.tolist()[1]])
+                # breakpoint()
                 loss.backward()
-                lr_scheduler.step_and_update_lr()
+                lr_scheduler.step()
                 optimizer.step()
                 acc, _, _ = accuracy(output, dst_hat, zh_corpus.get_id("<pad>"))
                 losses += loss.item()
                 logging.info(f"Epoch: {epoch}, Batch[{idx}/{len(train_loader)}], Train loss :{loss.item()}, acc:{acc}")
-            if epoch % 5 == 0:
+            if epoch % 5 == 4:
                 state_dict = deepcopy(model.state_dict())
-                # model_path = config.model_path#f"{config.model_path}_{epoch}"
-                model_path = f"{config.model_path}_{epoch}"
+                model_path = config.model_path#f"{config.model_path}_{epoch}"
+                # model_path = f"{config.model_path}_{epoch}"
                 torch.save(state_dict, model_path)
     except KeyboardInterrupt:
         state_dict = deepcopy(model.state_dict())
