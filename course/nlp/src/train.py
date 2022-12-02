@@ -43,6 +43,24 @@ class ScheduledOptim:
         for param_group in self._optimizer.param_groups:
             param_group['lr'] = lr
 
+def accuracy(logits, y_true, PAD_IDX):
+    """
+    :param logits:  [tgt_len,batch_size,tgt_vocab_size]
+    :param y_true:  [tgt_len,batch_size]
+    :param PAD_IDX:
+    :return:
+    """
+    y_pred = logits.transpose(0, 1).argmax(axis=2).reshape(-1)
+    # 将 [tgt_len,batch_size,tgt_vocab_size] 转成 [batch_size, tgt_len,tgt_vocab_size]
+    y_true = y_true.transpose(0, 1).reshape(-1)
+    # 将 [tgt_len,batch_size] 转成 [batch_size， tgt_len]
+    acc = y_pred.eq(y_true)  # 计算预测值与正确值比较的情况
+    mask = torch.logical_not(y_true.eq(PAD_IDX))  # 找到真实标签中，mask位置的信息。 mask位置为FALSE，非mask位置为TRUE
+    acc = acc.logical_and(mask)  # 去掉acc中mask的部分
+    correct = acc.sum().item()
+    total = mask.sum().item()
+    return float(correct) / total, correct, total
+
 
 def main():
     zh_corpus = CorpusData(config.zh_path, zh_tokenizer)
@@ -90,11 +108,14 @@ def main():
                 loss.backward()
                 lr_scheduler.step_and_update_lr()
                 optimizer.step()
+                acc, _, _ = accuracy(output, dst_hat, zh_corpus.get_id("<pad>"))
                 losses += loss.item()
-                logging.info(f"Epoch: {epoch}, Batch[{idx}/{len(train_loader)}], Train loss :{loss.item()}")
+                logging.info(f"Epoch: {epoch}, Batch[{idx}/{len(train_loader)}], Train loss :{loss.item()}, acc:{acc}")
             if epoch % 5 == 0:
                 state_dict = deepcopy(model.state_dict())
-                torch.save(state_dict, config.model_path)
+                # model_path = config.model_path#f"{config.model_path}_{epoch}"
+                model_path = f"{config.model_path}_{epoch}"
+                torch.save(state_dict, model_path)
     except KeyboardInterrupt:
         state_dict = deepcopy(model.state_dict())
         torch.save(state_dict, config.model_path)

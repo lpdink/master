@@ -105,6 +105,6 @@ class Transformer(torch.nn.Module):
                 y_hat = torch.argmax(self.linear(decoder_out))
                 # breakpoint()
                 decoder_input = torch.concat((decoder_input, y_hat.unsqueeze(0).reshape(-1, 1)))
-                if y_hat.item()==end_id:
-                    break
+                # if y_hat.item()==end_id:
+                #     break
         return decoder_input
