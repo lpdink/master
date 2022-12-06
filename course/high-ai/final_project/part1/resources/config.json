@@ -1,0 +1,17 @@
+{
+    "datasets":{
+        "mnist":{
+            "clazz":"dataset.cv.mnist",
+            "args":{
+                "train_img_path":"./resources/mnist/train-images-idx3-ubyte",
+                "train_label_path":"./resources/mnist/train-labels-idx1-ubyte",
+                "test_img_path":"./resources/mnist/t10k-images-idx3-ubyte",
+                "test_label_path":"./resources/mnist/t10k-labels-idx1-ubyte"
+            }
+        }
+    },
+    "models":{
+        "knn":{
+        }
+    }
+}
