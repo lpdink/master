@@ -6,34 +6,34 @@ train_src, train_dst, test_src, test_dst = get_dataset(
     "/home/lpdink/github/master/course/high-ai/final_project/part1/resources/mnist"
 )
 
+class MyLinear:
+    def __init__(self, shape):
+        self.weight = np.random.randn(*shape) * (2 / shape[0]**0.5)
+        self.bias = np.zeros(shape[-1])
+        self.weight_grad =None
+        self.bias_grad=None
 
-class MyLinear(object):
-    def __init__(self, in_channel, out_channel, lr=0.001):
-        self.weight = (np.random.randn(in_channel, out_channel) * 0.1).astype(
-            np.float64
-        )
-        self.bias = np.zeros((out_channel,), dtype=np.float64)
-        self.in_data = np.zeros((1, in_channel))
-        self.out_data = None
-        self.weight_grad = None
-        self.bias_grad = None
-        self.lr = lr
+    def infer(self, x):
+        tmp = np.dot(x, self.weight)
+        tmp += self.bias
+        return tmp
 
-    def forward(self, data):
-        self.in_data = data
-        self.out_data = np.dot(data, self.weight) + self.bias
-        return self.out_data
+    def forward(self, x):
+        self.x = x
+        tmp = np.dot(x, self.weight)
+        tmp += self.bias
+        return tmp
 
     def backward(self, grad):
-        N = self.in_data.shape[0]
-        data_grad = np.dot(grad, self.weight.T)  # 当前层的梯度
-        self.weight_grad = np.dot(self.in_data.T, grad) / N  # 当前层权重的梯度
-        self.bias_grad = np.sum(grad, axis=0) / N  # 当前层偏置的梯度
-        return data_grad
+        batch_size = grad.shape[0]
+        self.weight_grad = np.einsum('ji,jk->ik', self.x, grad) / batch_size
+        self.bias_grad = np.einsum('i...->...', grad, optimize=True) / batch_size
+        return np.einsum('ij,kj->ik', grad, self.weight, optimize=True)
 
     def step(self):
-        self.weight += self.weight_grad * self.lr
-        self.bias += self.bias_grad * self.lr
+        lr=0.0001
+        self.weight.data-=lr*self.weight_grad
+        self.bias.data-=lr*self.bias_grad
 
 
 class MyRelu():
@@ -42,6 +42,9 @@ class MyRelu():
 
     def forward(self, x):
         self.x = x
+        return np.maximum(0, x)
+    
+    def infer(self, x):
         return np.maximum(0, x)
 
     def backward(self, eta):
@@ -59,11 +62,16 @@ def softmax(x):
 
 class MyModel:
     def __init__(self, hidden_nodes) -> None:
-        self.layers = [MyLinear(28 * 28, hidden_nodes), MyRelu(), MyLinear(hidden_nodes, 100), MyRelu(), MyLinear(100, 10)]
+        self.layers = [MyLinear((28 * 28, hidden_nodes)), MyRelu(), MyLinear((hidden_nodes, 100)), MyRelu(), MyLinear((100, 10))]
 
     def forward(self, x):
         for layer in self.layers:
             x=layer.forward(x)
+        return x
+    
+    def infer(self, x):
+        for layer in self.layers:
+            x=layer.infer(x)
         return x
     
     def backward(self, grad):
@@ -87,9 +95,9 @@ def main():
     train_dst_pad = np.zeros((len(train_dst), 10))
     for i in range(len(train_dst)):
         train_dst_pad[i][train_dst[i]]=1
-    epochs=500
-    batch_size=12800
-    model = MyModel(500)
+    epochs=3
+    batch_size=128
+    model = MyModel(1000)
     train_src = train_src.reshape(train_src.shape[0], -1)
     for epoch in range(epochs):
         i = 0
@@ -100,12 +108,12 @@ def main():
             # breakpoint()
             output = model.forward(x)
             loss, grad = logloss(y, output)
-            breakpoint()
+            # breakpoint()
             model.backward(grad)
             model.step()
-        test_acc = sum(model.forward(test_src.reshape(test_src.shape[0],-1)).argmax(1)==test_dst)/len(test_dst)
-        # breakpoint()
-        logging.info(f"epoch:{epoch}, loss:{loss}, acc:{test_acc}")
+            # logging.info(f"epoch:{epoch}, loss:{loss}")
+            test_acc = sum(model.infer(test_src.reshape(test_src.shape[0],-1)).argmax(1)==test_dst)/len(test_dst)
+            logging.info(f"epoch:{epoch}, loss:{loss}, acc:{test_acc}")
         # exit()
 
 

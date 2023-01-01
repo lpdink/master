@@ -12,14 +12,22 @@ import time
 import json
 import numpy as np
 import os
+import argparse
 
-LENGTH = 1220
-WIDTH = 244
-HEIGHT = 290
+parser = argparse.ArgumentParser()
+parser.add_argument("--length",type=int,default=1220, required=False)
+parser.add_argument("--width", type=int, default=244, required=False)
+parser.add_argument("--height", type=int, default=290, required=False)
+parser.add_argument("--input_path", type=str, default="../resources/input.json", required=False)
+args=parser.parse_args()
+
+LENGTH = args.length
+WIDTH = args.width
+HEIGHT = args.height
 SPACE_V = LENGTH*WIDTH*HEIGHT
 
 INPUT_JSON = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../resources/input.json"
+    os.path.dirname(os.path.abspath(__file__)), args.input_path
 )
 
 
@@ -129,9 +137,10 @@ def main():
     print(
         f"space usage:{space.usage_v} in {SPACE_V}  {space.usage_v/SPACE_V}%"
     )
-    with open("result_pos.txt", "w") as file:
+    with open(f"{os.path.basename(args.input_path)}_result_pos.txt", "w") as file:
         content = "\n".join([str(cube) for cube in put_in_cubes])
         file.write(content)
+    print_warning(f"{args.input_path} handle done.")
 
 
 
