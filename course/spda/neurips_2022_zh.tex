@@ -1,0 +1,145 @@
+\documentclass[UTF8]{article}
+
+
+% if you need to pass options to natbib，use，e.g.：
+%     \PassOptionsToPackage{numbers，compress}{natbib}
+% before loading neurips_2022
+
+
+% ready for submission
+\usepackage[final]{neurips_2022_zh}
+
+% \PassOptionsToPackage{numbers，compress}{natbib}
+
+
+% to compile a preprint version，e.g.，for submission to arXiv，add add the
+% [preprint] option：
+%     \usepackage[preprint]{neurips_2022}
+
+
+% to compile a camera-ready version，add the [final] option，e.g.：
+%     \usepackage[final]{neurips_2022}
+
+
+% to avoid loading the natbib package，add option nonatbib：
+%    \usepackage[nonatbib]{neurips_2022}
+
+\usepackage{ctex} % support zh
+\usepackage{indentfirst} %support indent
+\usepackage{graphicx} % support image
+\usepackage[colorlinks, linkcolor=blue]{hyperref}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2，etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\setlength{\parindent}{2em}
+\title{动态本地可搜索对称加密}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors： \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So，if LaTeX puts 3 of 4
+% authors names on the first line，and the last on the second line，try using
+% \AND instead of \And before the third author name.
+
+
+\author{%
+  肖泽宇\thanks{本文是对Crypto2022 "Dynamic Local Searchable Symmetric Encryption"的翻译}\thanks{参考原文链接 https://hal.archives-ouvertes.fr/hal-03863896/document} \\
+  \texttt{2022202210145} \\
+  % examples of more authors
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+  在这篇文章中，我们将首次解决动态内存高效的可搜索对称加密问题(SSE)。这里的术语“内存高效”包括local内存高效和页内存高效。我们方法的核心是在这两个目标之间建立一种新型的联系。我们引入了一个被称为泛型局部变换的映射，它将具有某些特殊特征的高效页SSE方案作为输入，并输出具有强局域性的SSE方案。我们得到了以下几个结果。
+  \begin{itemize}
+    \item 首先，对于页面高效SSE，我们构建了一个页面效率O(log log N)和存储效率O(1)的动态方案，称为LayeredSSE。LayeredSSE背后的主要技术创新是两个选择分配过程的一个新的加权扩展，具有独立的利益。TODO
+    \item 其次，引入泛型局部变换，并将其与LayeredSSE相结合，在最长列表大小为$\mathcal{O}\left(N^{1-1 / \log \log \lambda}\right)$的条件下，构建存储效率O(1)，局域性O(1)，读取效率O(log log N)的动态SSE方案。这在各方面都与Asharov等人在STOC 2016上提出的纯静态结构相匹配:动态性无需额外成本。
+    \item 最后，通过将通用局部变换应用于Bossuat等人从Crypto 2021提出的Tethys方案的变体，我们构建了一个无条件静态SSE，其存储效率O(1)， localityO(1)，读取效率$\mathcal{O}\left(\log ^{\varepsilon} N\right)$，对于任意小的常数$\varepsilon$ > 0。据我们所知，这是Cash和Tessaro在2014年Eurocrypt上提出的最接近下限的结构。
+  \end{itemize}
+\end{abstract}
+
+
+\section{简介}
+\textbf{可搜索对称加密。}在可搜索对称加密(SSE)中，客户端将一组文档的存储托管给不受信任的服务器。客户端希望具备通过向服务器发出搜索请求来执行搜索的能力。在动态SSE的设置中，客户端还可以发出更新请求，以便修改文档的内容，例如添加或删除条目。服务器必须能够正确地处理所有请求，同时尽可能少地了解文档数据和请求的信息。SSE与许多云存储场景相关:例如，在托管敏感数据库或提供加密消息传递服务等情况下，可能非常需要某种形式的搜索功能。
+
+理论上，SSE是加密数据计算的一种特殊情况，可以使用通用的解决方案来实现，例如完全同态加密。但在实践中，这种方法会导致很大的性能损失。因此，SSE方案通常以高性能解决方案为目标，可扩展到大型真实场景数据库。为此，SSE不惜以安全换取效率。服务器被允许了解一些关于客户端数据的信息。例如，SSE方案通常向服务器泄漏查询的重复(搜索模式)和与查询匹配的文档标识符(访问模式)。SSE的安全模型通过泄漏函数进行参数化，该函数描述泄漏给服务器的信息的性质。
+
+\textbf{位置。}在单关键字SSE的情况下，搜索查询要求包含给定关键字的所有文档。为了实现该功能，服务器维护一个(加密的)反向索引，其中每个关键字都映射到与关键字匹配的文档标识符列表。当客户希望搜索与给定关键字匹配的文档时，客户只需从服务器检索相应的列表。然而，一个关键的问题是服务器应该如何存储和访问列表。
+
+一个列表接一个列表存储的简单方法并不令人满意:实际上，给定列表在内存中的位置依赖于其他列表的长度，从而泄露了关于这些列表的信息。解决这个问题的常用方法是将每个列表元素存储在内存中的随机位置。在这种情况下，当检索列表时，服务器必须访问与列表中元素数量一样多的随机内存位置。这也是不可取的，原因不同:对于几乎所有的现代存储介质，访问许多随机内存位置比访问一个连续区域要昂贵得多。由于SSE依赖于快速对称密码原语，内存访问成本成为性能瓶颈。为了获取成本，\cite{DavidCash2014TheLO}引入了局部性的概念:简而言之，SSE方案的局部性是服务器必须访问以回答查询的不连续内存位置的数量。
+
+上面概述的两个极端解决方案表明安全性和局部性之间存在冲突。在Eurocrypt 2014年，Cash和Tessaro表明这种冲突是固有的\cite{DavidCash2014TheLO}:如果安全SSE方案具有恒定的存储效率(加密数据库的大小与明文数据库的大小成线性关系)和恒定的读取效率(服务器为回答搜索查询而读取的数据量与明文答案的大小成线性关系)，那么它不可能具有恒定的局域性。
+
+\textbf{本地SSE结构。}从那时起，许多具有定域性的SSE方案被提出，通常是以超常读效率为代价的。在STOC 2016上，Asharov等人提出了一种具有O(1)存储效率、O(1)局部性和O(log N)读取效率的方案，其中N是数据库的大小\cite{GiladAsharov2021SearchableSE}。在Crypto 2018上，Demertzis等人将读取效率提高到$\mathcal{O}\left(\log ^{2 / 3+\varepsilon} N\right)$\cite{IoannisDemertzis2018SearchableEW}。在\cite{IoannisDemertzis2017FastSE}中还提出了$\omega$(1)存储效率的一些权衡。当数据库中最长列表的大小受到限制时，就会得到更强的结果。当需要这样一个上界时，我们将该构造称为有条件的。第一个条件SSE来自于Asharov等人，在最长列表大小为$\mathcal{O}\left(N^{1-1 / \log \log N}\right)$的条件下，达到了O(log log N)个读效率。后来改进为O(log log log N)读取效率，在最长列表的大小上有更强的条件$\mathcal{O}\left(N^{1-1 / \log \log \log N}\right)$。
+
+局部性被引入作为内存访问的性能度量，假设在硬盘驱动器上实现。在\cite{AngleBossuat2021SSEAS}中，Bossuat等人表明，在固态硬盘(如闪存盘)的情况下，局部性不再是相关的目标。相反，性能主要取决于访问的内存页的数量，而不管它们是否连续。在这种情况下，正确的性能指标是页面效率。页面效率定义为服务器为回答查询而读取的页面数，除以存储明文答案所需的页面数。\cite{AngleBossuat2021SSEAS}的主要结构实现了O(1)存储效率和O(1)页效率，假设客户端内存为$\omega$(log λ)页。
+
+到目前为止，所有现有结构(包括本地结构和页面高效结构)的一个共同点是它们都是纯静态的。这可能是因为构建局部SSE固有的困难，即使是在静态情况下(从一开始，Cash和Tessaro的不可能性结果就证明了这一点\cite{DavidCash2014TheLO})。然而，SSE的许多(如果不是大多数的话)应用程序需要动态性。这种情况严重阻碍了本地高效的SSE的适用性。
+
+在本文中，我们首次考虑了动态内存高效SSE的问题，这意味着我们同时针对动态页面高效SSE和动态局部高效SSE。我们方法的核心是在这两个目标之间建立一种新颖的联系。我们引入了一个称为泛型局部变换的映射，它将具有某些特殊特征的高效页SSE方案作为输入，并输出具有强局域性的SSE方案。我们的策略将是首先构建高效页面的方案，然后应用泛型局部变换获得局部方案。这种方法被证明是相当有效的，我们给出了几个结果。
+\section{背景}
+\subsection{背景1}
+范例
+
+\subsection{背景2}
+范例
+\subsection{背景3}
+范例
+
+\section{方法}
+范例
+\subsection{方法1}
+范例
+\subsection{方法2}
+范例
+\section{实验}
+范例
+\section{结论}
+范例
+% 插入图片
+% \begin{figure}[ht]
+%   \centering
+%   \includegraphics[scale=0.35]{8.png}
+%   \caption{这是图片的描述文件}
+%   \label{fig_1} 这样，就可以通过~\ref{fig_1}引用图片了
+% \end{figure}
+\bibliographystyle{unsrt}
+\bibliography{ref}
+
+\end{document}
+

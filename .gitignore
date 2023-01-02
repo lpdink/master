@@ -16,3 +16,7 @@ ELASTICLAVE
 build
 course/nlp
 *-ubyte
+*.txt
+*.json
+*.html
+*.pdf
