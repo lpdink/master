@@ -1799,3 +1799,95 @@ int Node::id=1;
 ```
 
 静态成员可以作为默认实参，但对象的成员不可以，因为对象的成员属于对象。  
+
+# 第Ⅱ部分：C++标准库
+
+## 第八章：IO库
+
+### 三种IO流类型
+
+- iostream IO流
+- fstream 文件流
+- sstream 字符串流
+
+宽字符(wchar_t)使用的是wcin, wcout和wcerr。
+
+### 文件输入输出
+
+读写文本文件：
+
+```cpp
+#include<iostream>
+#include<fstream>
+#include<string>
+using namespace std;
+
+int main(){
+    fstream in("input.txt");// ifstream也可以
+    ofstream out("output.txt"); // ofstream打开，覆盖写,如果是fstream打开，则不清空，光标从0号位置开始写。
+    string s;
+    while(getline(in, s)){
+        out<<s<<endl;
+    }
+    in.close();
+    out.close();
+}
+```
+
+由于ofstream打开文件时一定会清空文件，因此追加写需要显式指定：
+
+```cpp
+#include<iostream>
+#include<fstream>
+#include<string>
+using namespace std;
+
+int main(){
+    fstream in("input.txt");
+    ofstream out("output.txt", ofstream::app);
+    string s;
+    while(getline(in, s)){
+        out<<s<<endl;
+    }
+    in.close();
+    out.close();
+}
+```
+
+
+文件流常用三个方法：
+- fstream.open("filename.txt")
+- fstream.good() 或fstream.is_open()
+- fstream.close()
+
+### 读写二进制文件
+
+如果希望将自定义结构的数据保存到外存的二进制文件中，那么自定义结构不能包含可变长度类型，例如各种stl容器。
+
+下面的例子就要求结构体Student的char*数组是固定长度的。
+```cpp
+// 写
+ofstream out("out_bin.bin", ofstream::binary);
+Student ns={"大BOSS", 18, 1001};
+out.write(reinterpret_cast<char*>(&ns), sizeof(ns));
+out.close();
+
+// 读
+ifstream in("out_bin.bin", ifstream::binary);
+Student ns;
+in.read(reinterpret_cast<char*>(&ns), sizeof(ns));
+
+struct Student
+{
+    char name[30];
+    int age;
+    int number;
+};// ok
+
+struct Student
+{
+    string name;
+    int age;
+    int number;
+};// core.
+```
