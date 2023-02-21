@@ -192,7 +192,7 @@ extern "C"{
 static可能有以下的几种状态：
 
 - 静态局部变量：  
-在全局数据区分配内存，要求在声明处化，只被初始化一次，值会保存到下一次函数调用。(因为内存空间在全局数据区，而不是栈上，栈上数据会被回收。)
+在全局数据区分配内存，要求在声明处c初始化，只被初始化一次，值会保存到下一次函数调用。(因为内存空间在全局数据区，而不是栈上，栈上数据会被回收。)
 - 静态全局变量：  
 对其他文件完全不可见，避免命名冲突。
 - 静态函数：
@@ -304,7 +304,7 @@ const int* val_ptr=&val;
 
 **常指针/顶层const**
 常指针指，指针指向的地址本身不能变化，但是地址内的值可以变化。感觉用的比较少。  
-底层const则指，指针指向的对象是常量。  
+底层const则指，指针指向的对象是常量，指针本身指向的地址则可以变化。  
 
 ```cpp
 int val=42;
@@ -347,7 +347,7 @@ const int double_val=val+val;
 不要用constexpr修饰指针！  
 constexpr修饰指针，不会使得指向的对象成为常量，永远会使你创建的指针是一个常指针！
 
-```
+```cpp
 const int *p = nullptr; // 这是指向常量的指针
 constexpr int *q = nullptr;// 这是常指针！
 ```
@@ -365,7 +365,7 @@ constexpr const int *p=&val;
 const int *const p=&val;
 ```
 
-> 但话说回来，constexpr const int*ptr这种写法真的好漂亮哦，比const int*const ptr好看多了...
+> 但话说回来，constexpr const int \*ptr这种写法真的好漂亮哦，比const int* const ptr好看多了...
 
 ### typedef
 
@@ -557,7 +557,7 @@ iterm->mem 解引用并访问mem成员，等价于 (*item).mem
 iter1 == iter2 判断两个迭代器是否指向相同元素
 ```
 
-**建议**并不是所有的标准库容器都定义了迭代器的<！因此，总是使用!=来判断迭代器是否走到了末尾。  
+**建议**并不是所有的标准库容器都定义了迭代器的<或！因此，总是使用!=来判断迭代器是否走到了末尾。  
 
 - 迭代器的真实类型
 我们总是用auto访问，但迭代器的真实类型是：
@@ -726,7 +726,7 @@ for(auto &row:a){
 }
 ```
 
-**注意：**使用范围for遍历多维数组，只有最内层循环可以不使用引用。
+**注意：** 使用范围for遍历多维数组，只有最内层循环可以不使用引用。
 > 如果你尝试在外层循环不使用引用，编译器会报错，auto会将通过外层循环得到的量理解为指针而不是数组。你尝试遍历一个int*指针，当然会报错。  
 
 ## 第四章 表达式
@@ -988,7 +988,7 @@ future_error 未知错误
 ```cpp
 void print(const int*);
 void print(const int[]);
-void print(cost int[10]);
+void print(const int[10]);
 ```
 
 第三种写法暗示着作者期待一个长为10的数组传入，但C++不会为你做这样的检查。必须由作者保证不进行越界访问。  
@@ -1476,7 +1476,7 @@ class Counter {
  public:
   Counter() {}
   void add(){ this->nums += 1; }
-  int get_nums()const{return this.nums;}
+  int get_nums()const{return this->nums;}
  private:
   int nums = 0;
 };
@@ -1747,7 +1747,7 @@ int main(){
 }
 ```
 
-转换构造函数允许一步转换，但是不会允许多步转换。假设有一个函数需要std::string，你可以用字面值const char*来作为实参。  
+转换构造函数允许一步转换，但是不会允许多步转换。假设有一个函数需要std::string，你可以用字面值const char\*来作为实参。  
 我们上面例子的show_name接受Node类型，如果没有explicit声明，它可以接受一个std::string，但是不能接受一个const char* 字面量。那就是两步转换了。  
 
 ### 聚合类
