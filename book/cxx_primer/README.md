@@ -1862,9 +1862,9 @@ int main(){
 
 ### 读写二进制文件
 
-如果希望将自定义结构的数据保存到外存的二进制文件中，那么自定义结构不能包含可变长度类型，例如各种stl容器。
+如果希望将自定义结构的数据保存到外存的二进制文件中，那么自定义结构不能包含可变长度类型，例如各种stl容器。  
 
-下面的例子就要求结构体Student的char*数组是固定长度的。
+下面的例子就要求结构体Student的char数组是固定长度的。
 ```cpp
 // 写
 ofstream out("out_bin.bin", ofstream::binary);
@@ -1890,4 +1890,287 @@ struct Student
     int age;
     int number;
 };// core.
+```
+
+### 使用字符串流sstream
+
+sstream有好处：由于流的特点，可以简单地用空格分割，并将他们赋予不同的变量，以下是一个例子。
+
+```cpp
+#include<iostream>
+#include<sstream>
+#include<string>
+
+using namespace std;
+
+int main(){
+    stringstream ss("BigBoss 22 2022");
+    string name, year;
+    int age;
+    ss>>name>>age>>year;
+    cout<<name<<" "<<age<<" "<<year;
+}
+```
+
+stringstream相当于fstream，也可以用istringstream或ostringstream。  
+sstream的方法：
+- strm.str(); 返回sstream返回中的字符串。
+- strm.str("some string"); 将string绑定给流，返回void;
+
+## 第九章：顺序容器
+
+### 顺序容器类型与特点
+
+|名称|特点|
+|---|---|
+|vector|可变大小；随机访问；尾部操作快|
+|deque|双向队列;随机访问；头尾操作快|
+|list|双向链表;双向顺序访问；任何位置操作都快|
+|forward_list|单项列表；单向顺序访问；任何位置都快|
+|array|固定大小；随机访问；不能增减元素；|
+|string|与vector类似，专注于保存字符；尾部操作快|
+
+**使用建议**:
+- 一般情况下，vector一把梭。
+- 链表(list/forward_list)的空间占用较大，避免在空间敏感时使用。
+- deque也很常用。
+
+### 所有容器都支持的操作
+
+- 容器都定义在与它的名字一样的头文件中，如deque定义在deque头文件中。
+- 容器都是模板类，在声明时需要给出d_type；box\<d_type\>
+
+**构造函数**
+
+```cpp
+Box box; //空容器
+B b1(b2); //拷贝构造，深拷贝
+B b1=b2; //初始化，深拷贝
+B b3(s, e); //将迭代器s和e范围内的元素拷贝到b3中
+B b4{a,b,c...}; // 列表初始化
+```
+
+> 令人吃惊的是，容器类的()与=构造都是深拷贝，且是完全的深拷贝。即对于d_type为自定义类型，且类型内包含传统数组的情况，也会支持深拷贝。非常可靠。
+
+**常用方法**
+
+```cpp
+a.swap(b); //交换a,b容器的元素
+// or swap(a, b)
+a.size();
+a.empty();
+
+// 增删元素
+c.insert(args); // 拷贝args进c里。
+// 对于vector: v.insert(v.begin(), 12345); 第一个参数是const迭代器
+c.erase(args); // 删除指定元素
+// 常见两个重载，v.erase(v.begin()+i) or v.erase(v.begin(), v.end());
+c.clear(); // 清空
+
+c.front();// 返回首元素的引用。除了array都有
+c.back();//返回尾元素的引用，除了forward_list都有。
+// 因为是引用，所以front和back都可以作为左值使用.
+// 两个方法对空都是不安全的，属于未定义行为。
+```
+
+### 容器的迭代器
+
+```cpp
+auto it1=a.begin();
+auto it2 = a.rbegin(); // 反向迭代器，从最后一个元素开始，使用++访问上一个元素
+auto it3 = a.cbegin(); // const迭代器，不允许修改元素;
+auto it4 = a.crbegin(); // 反向const迭代器
+```
+
+### 顺序容器支持的操作
+
+```cpp
+// array不支持这些操作
+// forward_list 有自己专属版本的insert和emplace;
+// forward_list 不支持push_back和emplace_back;
+// vector和string 不支持 push_front和emplace_front
+
+c.push_back(t); // 除了array和forward_list外，每个顺序容器都支持push_back；包括string。
+
+c.pop_back();
+c.pop_front();
+
+// C++11新支持了emplace系方法. push_back在添加元素前会先创建这个元素，再将元素移动到容器中，而emplace_back添加元素时，是直接在尾部创建这个元素，相对来说效率更高。
+c.emplace_back(t);
+
+c.insert(p, t);// insert方法返回指向p位置的迭代器.
+//因此可以放在循环里，不断向特定位置插值
+c.emplace(p, t);
+
+c.push_front(t)// list, forward_list, deque支持front追加。forward_list顾头不顾尾.
+// vector充当了栈，deque则两头.
+```
+
+### emplace与push的性能讨论
+emplace 比 push省去了拷贝这一步，但如果对象是已经创建好的，则效率是一致的。  
+只有在触发转换构造函数，或者C++内置类型时，会有较大的收益。  
+
+```cpp
+#include<iostream>
+#include<vector>
+using namespace std;
+
+class Node{
+    public:
+        Node(int n):num(n){
+            cout<<"构造函数"<<endl;
+        }
+        Node(const Node &other):num(other.num){
+            cout<<"拷贝构造函数"<<endl;
+        }
+        Node(Node&& old):num(old.num){
+            cout<<"移动构造函数"<<endl;
+        }
+        int num;
+};
+
+int main(){
+    vector<Node> vns;
+    cout<<"效率相等的情况：先创建对象，再放入容器"<<endl;
+    cout<<"push_back:"<<endl;
+    vns.push_back(Node(12));
+    cout<<"------\n"<<"emplace_back:"<<endl;
+    vns.emplace_back(Node(42));
+
+    cout<<"---------\nemplace_back效率高的情况：\n";
+    cout<<"push_back:"<<endl;
+    vns.push_back(12);
+    cout<<"emplace_back:"<<endl;
+    vns.emplace_back(42);
+}
+```
+
+执行结果是：
+
+```
+效率相等的情况：先创建对象，再放入容器
+push_back:
+构造函数
+移动构造函数
+------
+emplace_back:
+构造函数
+移动构造函数
+拷贝构造函数
+---------
+emplace_back效率高的情况：
+push_back:
+构造函数
+移动构造函数
+拷贝构造函数
+拷贝构造函数
+emplace_back:
+构造函数
+```
+> 第一种情况让人感到费解，emplace_back多调用了一次拷贝构造函数。它的效率比push_back更低了。  
+
+> 第二种情况当然是符合期望的，也是emplace_back能大幅取得收益的地方。  
+
+> 因此，不能说emplace_back总比push_back好。事实上，除非你能通过定义转换的形式(单参数ok，多参数也ok)，保证emplace_back更好，否则还是push_back一把梭吧。
+
+### 使用resize
+
+可以使用resize调整容器的大小，向其中加入指定元素来填充，或删除部分元素。
+
+```cpp
+c.resize(n) //将c的大小调整为n，超过则删除后面的，不足则用0补齐。
+c.resize(n, num)// 不足用num补齐。
+```
+
+> resize是有些危险的，如果缩小容器，可能导致指向被删除元素的迭代器，引用和指针失效。
+
+使用指向容器类型的指针是危险的，如果容器增加或删除了元素，引起了存储空间的重新分配，指针可能会失效。
+> 这么说，为什么我们当时使用的vector都使用了shared_ptr呢？
+
+> **警告**：不要保存end返回的迭代器。对容器的任何添加或删除操作都会使得end迭代器失效。希望通过begin!=end来遍历容器时需要在每次循环时都调用end()，而不是先保存它。
+
+### 管理vector的扩张
+
+vector总是申请比它当前需要的元素多一些的空间，以应对随时可能到来的push_back。  
+可以使用一定的方法告知vector准备多少空间，以改善程序性能：
+
+```cpp
+// 将capacity()减少到size()大小，相当于避免占用多余的空间.
+// 对于d_type很大，且空间敏感时，在程序的最后调用一下这个方法很好.
+// 但这依然是一个请求，请求编译器在这里退回多余的容器空间。因为是请求，所以不一定会被执行.
+c.shrink_to_fit();
+
+c.capacity();// 当前不引起重新内存分配的最大容量.
+c.reserve(n);// 分配n个元素的内存空间
+// reserve会至少分配n个元素的内存空间，不过有可能更大.
+```
+
+### 额外的string操作
+
+```cpp
+// 构造函数
+string s(cp, n);// cp数组中前n个元素的拷贝
+string s(s2, pos2);// 对s2的，从pos2开始的元素拷贝
+stirng s(s2, pos2, len); //对s2的，从pos2开始的，len个元素的拷贝
+```
+
+```cpp
+// sub_str
+s.substr(pos, len) // 注意第二个参数是len，不是pos，与切片不同！
+
+//insert-erase
+s.insert(s.size(), 5, '!'); //末位加入5个!
+s.erase(s.size()-5, 5); // 删除末尾的5个元素
+
+const char *str="Hello World";
+s.assign(str, 5);// s=Hello；
+
+// append与replace
+s.append("abcde"); //append在末尾追加字符串,push_back只能放入一个字符.
+s.replace(0, 3, "abcdes");// 从0号位置开始删除3个元素，替换为abcdes。
+```
+
+```cpp
+// 搜索
+// 如果搜索失败，返回string::npos
+string s1="abcdes";
+s1.find("abc") // rst=0, 注意，这是一个unsigned!最好不要用int这样的有符号类型保存它.
+// 推荐用auto？
+
+// 寻找与任何字符匹配的第一个位置
+string res="abcdefg123890";
+res.find_first_of("0123456789");// 相当于返回第一个数字所在的索引.
+
+// 寻找与给定字符不匹配的第一个位置
+res.find_first_not_of("0123456789");
+
+// 其他
+s.rfind() // 最后一次出现
+s.find_last_of(); //倒着找
+s.find_last_not_of(); 
+
+// 一个示例：每步循环查找字符串中的下一个数字
+string::size_type pos=0;
+string s2="ab12cd34ef56ppos";
+while((pos=s2.find_first_of("0123456789", pos))!=string::npos){
+    cout<<pos<<" "<<s2[pos]<<endl;
+    ++pos;
+}
+```
+
+```cpp
+// 字符串的数值转换
+int i=42;
+string s=to_string(i);
+double d=stod(s);
+
+to_string(val);// 几乎所有的内置数据类型都有
+stoi(); // int
+stol(); // long
+stoul(); //unsigned long
+stoll(); // long long
+stoull(); // unsigned long long
+stof(); // float 
+stod(); //double 
+stold(); // long double
 ```
