@@ -2174,3 +2174,97 @@ stof(); // float
 stod(); //double 
 stold(); // long double
 ```
+
+### 容器适配器
+
+C++有三种容器适配器。所谓容器适配器，是指可以由容器伪装的一种类型，表现出适配器类型的特点。  
+
+- stack
+- queue
+- priority_queue
+
+> 适配器只有空构造函数，和从基础容器的构造函数。这是说，你不能通过{}来初始化他们。
+
+> 不能使用auto迭代，没有begin和end方法。
+
+> 从功能上，适配器是带有限制的基础容器。
+
+**stack**
+```cpp
+// 不太理解什么场景会用stack。
+// 因为vector可以完全替代它的作用.
+#include<stack>
+#include<deque>
+#include<vector>
+using namespace std;
+
+int main(){
+    deque<int> deq{12,3};
+    vector<int> vec{4,5,6};
+    // 适配器可以用一些基本容器类型初始化
+    // 奇怪的是，stack不能用vector初始化...
+    stack<int> sk(deq); 
+    sk.push(123);
+    int top=sk.top();//返回栈顶元素
+    sk.pop(); //pop没有返回值
+}
+```
+
+**queue与priority_queue**
+
+本节在cxx_primer中的叙述很奇怪，可能是有所错误。  
+书330页底部关于队列适配器的叙述，说q.pop()不删除元素，且有返回值，但这是不正确的。测试代码如下：
+```cpp
+#include<queue>
+#include<deque>
+#include<iostream>
+using namespace std;
+
+int main(){
+    deque<int> deq{1,2,3};
+    queue<int> que(deq);
+    
+    while(!que.empty()){
+        cout<<que.front()<<endl;
+        que.pop();// 返回值是void的！
+    }
+}
+```
+
+以下给出优先队列的常见使用：
+
+```cpp
+#include<queue>
+#include<vector>
+#include<iostream>
+using namespace std;
+
+int main(){
+    vector<int> vec{4,3,6,7,8};
+    priority_queue<int> pq(vec.begin(), vec.end());
+    pq.push(1024);
+    pq.push(42);
+    pq.push(2048);
+    while(!pq.empty()){
+        cout<<pq.top()<<endl;
+        pq.pop();
+    }
+}
+// output:
+// 2048
+// 1024
+// 42
+// 8
+// 7
+// 6
+// 4
+// 3
+```
+优先队列默认是从大到小的（大根堆）。  
+要声明一个小根堆，需要：
+
+```cpp
+priority_queue<int, vector<int>,greater<int>> pq(vec.begin(), vec.end());
+```
+
+这是priority的完整声明，第一个参数是d_type，第二个是实现优先队列的底层容器类型，这里用了vector，第三个是比较两个元素之间的函数。一般有std::less和std::greater。greater代表从前到后，依次greater。
