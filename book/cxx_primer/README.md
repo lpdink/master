@@ -2268,3 +2268,115 @@ priority_queue<int, vector<int>,greater<int>> pq(vec.begin(), vec.end());
 ```
 
 这是priority的完整声明，第一个参数是d_type，第二个是实现优先队列的底层容器类型，这里用了vector，第三个是比较两个元素之间的函数。一般有std::less和std::greater。greater代表从前到后，依次greater。
+
+## 第十章：泛型算法
+
+本章的重点在算法，而不是对用户如何定义泛型的讲解。主要介绍定义在头文件algorithm中，以及一些数值泛型操作，定义在numeric中。  
+
+但泛型算法的“泛型”也十分重要，它意味着算法并不作用于特定容器之上，在下面可以看到，泛型算法总是作用在容器的迭代器上。  
+因此，泛型算法一定不会改变容器的大小。尽管它有可能改变元素的值。  
+
+> 因为你知道，在使用迭代器遍历容器时，增删元素是危险的。
+
+
+### 一个好的例子：find与count
+
+algorithm中的find可以作用在标准库容器或C数组上，返回一个迭代器。
+
+```cpp
+#include<algorithm>
+
+int val = 42;
+// result 是一个迭代器，使用autou最好
+auto result = find(vec.begin(), vec.end(), val);
+// count则返回出现的次数.
+int rst = count(vec.begin(), vec.end(), 5);
+// 如果找不到result == vec.end()
+```
+
+### 只读算法：
+
+上面的count和find就是只读算法。同使用类型的包括：
+
+- count: 统计范围内特定元素的个数.
+- find: 查找特定范围内的第一个元素.
+- accumulate: 对特定范围求和。（第三个参数是求和初始量，也决定了使用哪种加法，以及返回值类型）
+
+> 如果你对string类型调用accumulate，那么就会造成拼接。
+
+> 你不能这样写：string sum = accumulate(v.begin(), v.end(), "")，因为const char*上没有定义加法运算符。
+
+> 你需要把它修改为string("").
+
+- equal: 比较两个容器的元素值是否完全相等。参数分别为：第一个容器的begin，第一个容器的end，第二个容器的begin。
+
+> equal可以从第一个容器的begin和end推测出应该遍历多少次第二个容器。因此，你需要保证第二个容器至少含有那么多元素。  
+
+### 写容器元素
+
+- fill: fill(vec.begin(), vec.end(), 0); 用第三个元素给各位置赋值。
+- fill_n: fill_n(vec.begin(), n, 0); n标志了移动多少次.
+
+fill_n要求程序员确保n位空间已申请且可访问。如果没有，那么结果是未定义的。  
+
+### back_inserter
+
+back_inserter定义在interator头文件中。它接受一个容器的引用，返回一个与该容器绑定的插入迭代器。  
+之后，给该迭代器赋值，会隐含地调用push_back()，以添加元素：
+
+```cpp
+#include<iterator>
+
+vector<int> vec;
+auto it = back_inserter(vec)
+*it = 42;// is equal to vec.push_back(42);
+```
+
+配合使用back_inserter和fill_n，我们就可以给已经创建好的容器批量添加元素了。  
+
+```cpp
+#include<iterator>
+#include<algorithm>
+
+vector<int> vec;
+fill_n(back_inserter(vec), 10, 0) // 加入10个0给vec。
+```
+
+### 拷贝copy
+
+```cpp
+#include<algorithm>
+auto ret = copy(a1.begin(), a1.end(), a2.begin());
+// 需要用户确保a2有足够的空间
+// 返回的ret指向a2尾元素之后的位置。
+```
+
+### replace与copy
+
+许多算法有copy版本，即不修改原先的容器，而是将结果放入第三个容器中。  
+
+```cpp
+// 一般replace:
+replace(a.begin(), a.end(), 0, 42);// 0替换为42;
+
+// copy版本
+replace_copy(a1.cbegin(), a1.cend(), back_inserter(new_vec), 0, 42);
+// 结果将会放到new_vec中
+```
+
+### 排序
+
+```cpp
+// 以下是一个任务：删除string数组的重复元素
+
+// 排序，寻找重复单词
+sort(words.begin(), words.end());
+
+// unique得配合sort使用才行.将不重复的元素放到容器的前面，返回第一个重复元素的位置的迭代器。
+auto end_unique = unique(words.begin(), words.end());
+
+// 删除
+words.erase(end_unique, words.end());
+```
+
+### TODO:10.3
