@@ -1854,8 +1854,8 @@ int main(){
 }
 ```
 
-
 文件流常用三个方法：
+
 - fstream.open("filename.txt")
 - fstream.good() 或fstream.is_open()
 - fstream.close()
@@ -1865,6 +1865,7 @@ int main(){
 如果希望将自定义结构的数据保存到外存的二进制文件中，那么自定义结构不能包含可变长度类型，例如各种stl容器。  
 
 下面的例子就要求结构体Student的char数组是固定长度的。
+
 ```cpp
 // 写
 ofstream out("out_bin.bin", ofstream::binary);
@@ -1914,6 +1915,7 @@ int main(){
 
 stringstream相当于fstream，也可以用istringstream或ostringstream。  
 sstream的方法：
+
 - strm.str(); 返回sstream返回中的字符串。
 - strm.str("some string"); 将string绑定给流，返回void;
 
@@ -1931,6 +1933,7 @@ sstream的方法：
 |string|与vector类似，专注于保存字符；尾部操作快|
 
 **使用建议**:
+
 - 一般情况下，vector一把梭。
 - 链表(list/forward_list)的空间占用较大，避免在空间敏感时使用。
 - deque也很常用。
@@ -2007,6 +2010,7 @@ c.push_front(t)// list, forward_list, deque支持front追加。forward_list顾�
 ```
 
 ### emplace与push的性能讨论
+
 emplace 比 push省去了拷贝这一步，但如果对象是已经创建好的，则效率是一致的。  
 只有在触发转换构造函数，或者C++内置类型时，会有较大的收益。  
 
@@ -2067,6 +2071,7 @@ push_back:
 emplace_back:
 构造函数
 ```
+
 > 第一种情况让人感到费解，emplace_back多调用了一次拷贝构造函数。它的效率比push_back更低了。  
 
 > 第二种情况当然是符合期望的，也是emplace_back能大幅取得收益的地方。  
@@ -2190,6 +2195,7 @@ C++有三种容器适配器。所谓容器适配器，是指可以由容器伪�
 > 从功能上，适配器是带有限制的基础容器。
 
 **stack**
+
 ```cpp
 // 不太理解什么场景会用stack。
 // 因为vector可以完全替代它的作用.
@@ -2214,6 +2220,7 @@ int main(){
 
 本节在cxx_primer中的叙述很奇怪，可能是有所错误。  
 书330页底部关于队列适配器的叙述，说q.pop()不删除元素，且有返回值，但这是不正确的。测试代码如下：
+
 ```cpp
 #include<queue>
 #include<deque>
@@ -2260,6 +2267,7 @@ int main(){
 // 4
 // 3
 ```
+
 优先队列默认是从大到小的（大根堆）。  
 要声明一个小根堆，需要：
 
@@ -2278,7 +2286,6 @@ priority_queue<int, vector<int>,greater<int>> pq(vec.begin(), vec.end());
 
 > 因为你知道，在使用迭代器遍历容器时，增删元素是危险的。
 
-
 ### 一个好的例子：find与count
 
 algorithm中的find可以作用在标准库容器或C数组上，返回一个迭代器。
@@ -2294,7 +2301,7 @@ int rst = count(vec.begin(), vec.end(), 5);
 // 如果找不到result == vec.end()
 ```
 
-### 只读算法：
+### 只读算法
 
 上面的count和find就是只读算法。同使用类型的包括：
 
@@ -2364,7 +2371,7 @@ replace_copy(a1.cbegin(), a1.cend(), back_inserter(new_vec), 0, 42);
 // 结果将会放到new_vec中
 ```
 
-### 排序
+### sort与unique
 
 ```cpp
 // 以下是一个任务：删除string数组的重复元素
@@ -2379,4 +2386,256 @@ auto end_unique = unique(words.begin(), words.end());
 words.erase(end_unique, words.end());
 ```
 
-### TODO:10.3
+> unique的作用是去除容器或者数组中相邻元素的重复出现的元素，只保留其中一个。其函数原型为：iterator unique (iterator it_1,iterator it_2)。其中，it_1和it_2表示容器的起始和结束迭代器，函数会返回去重之后的尾地址。需要注意的是，这里的去除并非真正意义的erase，而是将重复的元素放到容器的末尾。对于顺序顺序错乱的数组成员或者容器成员，需要先进行排序，可以调用std::sort()函数。
+
+### 定制行为：向算法传递函数
+
+标准库中的算法的行为常常是确定的，但用户也可以进行一些定制操作。
+
+我们自定义一个函数，让标准库算法使用我们定义的函数工作：
+
+```cpp
+#include<algorithm>
+#include<string>
+
+bool isShorter(const string &s1, const string &s2){
+    return s1.size()<s2.size();
+}
+
+// 将函数传递给泛型算法以定制操作
+// sort在底层执行的是一个二元运算符，因此第三个函数被要求定义为二元的。
+// 这个函数将words按照元素长度，从小到大排列.
+// 即对二元的 s1和s2，如果s1 ? s2==True，则s1排在s2之前.
+sort(words.begin(), words.end(), isShorter);
+```
+
+容易理解，标准库提供的泛型算法作用在一个地址区间上的每个元素或每组元素上，本质上是元素操作。因此，一定存在运算符。  
+理解算法使用的是哪种运算符，是几元的，我们就能定制算法行为。  
+
+### lambda表达式
+
+语法：
+
+```cpp
+[capture list](parameter list) -> return type {function body}
+// capture list指lambda函数体内会使用的“局部标识符”。
+// 不在捕获列表内，lambda函数无法使用.
+// 全局变量不是。lambda函数内可以使用任何全局声明的，包括函数与类定义，或者static变量。
+```
+
+在实现时，可以忽略参数列表和返回值类型，但永远必须包含捕获列表和函数体：
+
+```cpp
+
+auto f = []{return 42;};
+// 建议记忆：
+auto f = [](){return 42;};
+// lambda函数不允许默认参数。
+// labmda函数要求在定义体最后的;
+```
+
+lambda函数的调用与一般函数一致。由于短小，方便调用，常用在传递给函数，以定制行为上。
+
+之前的例子可以用lambda函数实现为：
+
+```cpp
+#include<iostream>
+#include<vector>
+#include<string>
+#include<algorithm>
+
+auto shorter = [](const string &s1, const string &s2)->bool{return s1.size()<s2.size();};
+
+vector<string> vec{"123dd", "4567","qw","e"};
+sort(vec.begin(), vec.end(), shorter);
+// or
+// sort(vec.begin(), vec.end(), [](const string &s1, const string &s2){return s1.size()<s2.size();});
+// ...，这种代码在大型工程中会不会有点不负责任？
+```
+
+lambda做的实际工作比看上去更多。编译器实际上先定义了一个lambda对应的，未命名的class类型。我们调用声明的lambda函数时(包括auto的赋值调用和字面量传入函数调用)，实际上在构造这个未命名的class的对象。  
+
+### find_if
+
+find_if是对find的定制行为支持。  
+find只能使用==完成查找操作，find_if则在第三项接受一个返回bool的函数，单目运算符，作用在每个遍历到的元素上，直到第三个参数的函数返回True为止。  
+
+配合lambda表达式，实现一个找到列表中第一个达到指定长度的字符串。
+
+```cpp
+vector<string> vs{"123", "abc","45z6","def"};
+int min_size = 4;
+
+// 这里也演示了lambda表达式关于局部变量捕获的使用方法
+auto ptr = find_if(vs.begin(), vs.end(), [min_size](const string &s){return s.size()>=min_size;});
+```
+
+容易理解，如果先根据元素长度对列表排序，再find_if取得第一个达到期望长度的元素的迭代器，根据vs.end()-ptr，我们就能知道列表中有多少个元素达到了指定长度。  
+
+> 当然，这样做在时间上是亏很多的。
+
+### for_each算法
+
+for_each算法接受一个可调用对象（lambda/函数），对范围内的所有元素调用该对象。（所以，可调用对象必须是单目的）
+
+下段代码打印vector\<string\>中所有字符串的反转，但不修改字符串。  
+用了两种方法，for(:)和for_each。  
+由于范围for不加&时会创建元素的拷贝，因此无需额外考虑，调用reverse就能反转一个备份，然后打印。  
+for_each更像是一般的循环，自行申请了新的空间，并用reverse_copy完成了工作。  
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+  vector<string> vs{"123", "456", "789"};
+  string s("123");
+  // s.substr()
+  auto show_reverse = [](const vector<string> &vs) {
+    // 这里用了auto 而不是auto &，以保证遍历到的元素没有被修改.
+    for (auto s : vs) {
+      // reverse 并不会修改vs中的元素
+      reverse(s.begin(), s.end());
+      cout << s << endl;
+    }
+    return 0;
+  };
+  show_reverse(vs);
+
+  for_each(vs.begin(), vs.end(), [](const string &s) {
+    // 这里必须申请4个char空间，额外的一个留给编译器添加的\0
+    char tmp[4];
+    reverse_copy(s.begin(), s.end(), tmp);
+    cout << tmp << endl;
+  });
+}
+
+```
+
+> 颇有一种，茴字的四种写法的味道...
+
+但for_each还是比较有用的，如果你要对列表中的每个元素都执行特定的单一操作的话。  
+
+> 我们来复习一下python的lambda表达式，下例生成1-100的奇数和偶数，并将两者相加:
+```py
+odd = list(range(1, 100, 2))
+even = list(map(lambda x:x+1, odd))
+rst = list(map(lambda x,y:x+y, odd, even))
+```
+
+### lambda的值捕获与引用捕获
+
+在lambda表达式的捕获列表中，除了值传递，也可以通过&完成引用传递。  
+对于值传递，lambda会在自己被定义时就完成拷贝，因此，后续对该值的更改不会影响到lambda。  
+值传递是const的，你无法修改，也不应该修改它的值。  
+
+> 当然，它可以被解const，以下是一个实例，同时也说明了lambda的值传递在定义时完成，而不是调用时。  
+> 也暗示了，lambda在创建一个自定义类型，而不是简单的函数调用的实质：它需要一块内存，保存值捕获的结果。  
+```cpp
+int tmp = 101;
+auto f = [tmp]{
+    int &p = const_cast<int&>(tmp);
+    ++p;
+    cout<<tmp<<endl;
+    };
+f();
+f();
+cout<<tmp;
+// 结果是：
+// 102 
+// 103
+// 101
+// 由于我们恶意地用const_cast解除了值捕获的read-only，因此，多次对lambda调用打印的捕获值有所不同。这暗示了lambda定义了一个类型，并将捕获到的值作为其const数据成员，在调用时产生对象。
+```
+
+引用捕获：
+
+```cpp
+int size = 42;
+auto f2 = [&size]{return size;};
+```
+引用捕获的行为与一般引用一致。  
+在返回引用的对象上，lambda的规则与一般函数一致，不要返回局部对象的引用。离开作用域范围，会被回收。  
+引用捕获不进行值传递，如果引用的对象在lambda调用时已经被回收，那么调用就是危险的。  
+所以说，以引用方式捕获一个变量时，需要确保lambda执行时值依然存在。  
+
+### lambda的隐式捕获
+
+> 如果说有什么是最讨厌的，就是这一大堆令人费解，毫无可读性，让人摸不着头脑的省略写法。  
+
+隐式捕获指让编译器根据lambda中函数体的代码，推断需要捕获哪些变量。  
+在推断列表中写一个=或&，分别代表值捕获和引用捕获。  
+
+```cpp
+wc = find_if(words.begin(), words.end(), [=](const string &s){return s.size()>=sz;})
+// 由于写了=，sz会被推导，隐式捕获。
+```
+
+> 不过你问我会不会写？我肯定会写！挺方便的呀。
+
+可以混合使用隐式捕获和显式捕获，不过，若隐式捕获&，则显式的只能是=，相反亦然。  
+
+### 可变lambda:使得值捕获可变
+
+像之前说的，lambda的值捕获都会是const的，我们可以声明mutable，来使得它可变。  
+注意区分两种情况，mutable声明与引用捕获是截然不同的。mutable声明的值引用依然是值传递，使得捕获的参数可以改变，但是不会改变该参数的源对象，就像我们上面强制解const时的情况一样。  
+
+```cpp
+int tmp = 42;
+auto f = [=]()mutable{return ++tmp;};// 这种情况下不能省略参数的()，即使没有。
+// 这有点让人在意，mutable不应该是作用在[]上的吗？
+cout<<f()<<" "<<f();
+
+// result:
+// 43 44
+```
+
+### lambda：无法推断返回值类型的情况
+
+有时候，lambda无法推断返回值的类型，此时需要显式指出：
+
+例如：
+```cpp
+auto f = [](int i){if(i<0)return -i;else return i;};
+```
+需要修改为：
+
+```cpp
+auto f = [](int i)->int {if(i<0)return -i;else return i;};
+```
+> 这是primer说的，我在g++上，第一种情况也通过了。
+
+### 使用bind生成新的可调用对象
+
+> 与python的functools.partial装饰器行为相似。  
+
+语法是auto new_callable = bind(callable, arg_list)。arg_list中使用占位符，绑定部分参数。  
+
+```cpp
+#include <iostream>
+#include <functional>
+
+using namespace std;
+using namespace std::placeholders;
+
+int add(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    auto newAdd = bind(add, _1, _2, 0); // 将第三个参数绑定为0
+    cout << newAdd(1, 2) << endl; // 输出3
+    return 0;
+}
+```
+TODO:
+- 10.4 再探迭代器
+- 10.5 泛型算法结构
+- 10.6 特定容器算法
+
+三节，感觉意义有限，暂时跳过。
+
+## 第十一章 关联容器
