@@ -110,3 +110,25 @@ docker container prune
 ```
 
 ## TODO：dockerfile与容器合并
+
+## PDL的容器创建与使用过程
+sudo docker run --name pdl_obj -it  --runtime=nvidia --gpus all nvidia/cuda:11.6.2-base-ubuntu20.04 bash
+apt-get update
+apt-get install -y git vim wget
+apt-get install -y cuda-toolkit-11-6
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
+
+sudo docker login --username=lpdink registry.cn-hangzhou.aliyuncs.com
+sudo docker tag 67f54adffee7 registry.cn-hangzhou.aliyuncs.com/8bitpd/pdl:v1.0
+sudo docker push registry.cn-hangzhou.aliyuncs.com/8bitpd/pdl:v1.0
+
+查看网速
+sudo nethogs
+
+配置git来拉代码：
+```sh
+ssh-agent bash # 一定要启动才行。
+ssh-add ~/.ssh/id_rsa
+```
