@@ -95,7 +95,8 @@ sudo docker pull pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 # 启动容器，这里创建了一个名为pdl_obj的容器，将所有的gpu都分配给了容器，
 # 将目录/mnt/data/8bitpd挂在在/root/8bitpd下面。
 # 将主机9317端口映射到容器的22端口，以便之后能通过ssh直接连接docker
-sudo docker run --name pdl_obj -it -p 9317:22 --runtime=nvidia --gpus all -v /mnt/data/8bitpd:/root/8bitpd pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime bash
+# 添加--shm-size 32G，将共享内存大小提高到32G，保证torch的DataLoader能够多开
+sudo docker run --name pdl_obj -it -p 9317:22 --runtime=nvidia --gpus all --shm-size 32G -v /mnt/data/8bitpd:/root/8bitpd pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime bash
 ```
 
 这一镜像是携带11.6版本的nvcc的，pytorch使用的cuda环境由它决定，而不是nvidia-smi。
