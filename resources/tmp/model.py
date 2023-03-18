@@ -28,21 +28,29 @@ class ERM(Algorithm):
 
     def predict(self, x):
         return self.network(x)
-    
+
+
 class ERMStudent(ERM):
     def __init__(self, input_shape, num_classes, num_domains, hparams):
         super().__init__(input_shape, num_classes, num_domains, hparams)
-        self.distillation_loss = nn.KLDivLoss() # KL散度损失
-        self.temperature = 4 # 温度4
-        self.alpha = 0.25 # 蒸馏损失权重
+        self.distillation_loss = nn.KLDivLoss()  # KL散度损失
+        self.temperature = 4  # 温度4
+        self.alpha = 0.25  # 蒸馏损失权重
 
     def update(self, x, y, teacher_pred):
         student_pred = self.predict(x)
-        student_loss = F.cross_entropy(student_pred, y) # hard loss
-        distillation_loss = self.distillation_loss(F.log_softmax(student_pred/self.temperature, dim=1), F.softmax(teacher_pred/self.temperature, dim=1))
+        student_loss = F.cross_entropy(student_pred, y)  # hard loss
+        distillation_loss = self.distillation_loss(
+            F.log_softmax(student_pred / self.temperature, dim=1),
+            F.softmax(teacher_pred / self.temperature, dim=1),
+        )
 
-        loss = (1-self.alpha)*student_loss + self.alpha*distillation_loss
+        loss = (1 - self.alpha) * student_loss + self.alpha * distillation_loss
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return {"total_loss": loss.item(), "hard_loss":student_loss.item(), "distillation_loss":distillation_loss.item()}
+        return {
+            "total_loss": loss.item(),
+            "hard_loss": student_loss.item(),
+            "distillation_loss": distillation_loss.item(),
+        }

@@ -15,20 +15,20 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--length",type=int,default=1220, required=False)
+parser.add_argument("--length", type=int, default=1220, required=False)
 parser.add_argument("--width", type=int, default=244, required=False)
 parser.add_argument("--height", type=int, default=290, required=False)
-parser.add_argument("--input_path", type=str, default="../resources/input.json", required=False)
-args=parser.parse_args()
+parser.add_argument(
+    "--input_path", type=str, default="../resources/input.json", required=False
+)
+args = parser.parse_args()
 
 LENGTH = args.length
 WIDTH = args.width
 HEIGHT = args.height
-SPACE_V = LENGTH*WIDTH*HEIGHT
+SPACE_V = LENGTH * WIDTH * HEIGHT
 
-INPUT_JSON = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), args.input_path
-)
+INPUT_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.input_path)
 
 
 def print_warning(msg):
@@ -51,7 +51,7 @@ class Cube:
         self._l = l
         self._w = w
         self._h = h
-        self._v = l*w*h
+        self._v = l * w * h
         self.position = None
 
     def __iter__(self):
@@ -94,19 +94,23 @@ class Space:
 
     @timer
     def put_in(self, cube: Cube):
-        base_line = max(0, self.usage_v/SPACE_V-0.05)
-        begin = int(base_line*LENGTH)
-        for l_index in range(begin, LENGTH-cube.length+1):
-            for w_index in range(0, WIDTH-cube.width+1):
+        base_line = max(0, self.usage_v / SPACE_V - 0.05)
+        begin = int(base_line * LENGTH)
+        for l_index in range(begin, LENGTH - cube.length + 1):
+            for w_index in range(0, WIDTH - cube.width + 1):
                 space_kernel = self.space[
-                l_index : l_index + cube.length, w_index : w_index + cube.width
+                    l_index : l_index + cube.length, w_index : w_index + cube.width
                 ]
-                if np.all(space_kernel>=cube.height):
+                if np.all(space_kernel >= cube.height):
                     space_kernel -= cube.height
                     min_height = np.min(space_kernel)
                     space_kernel = min_height
                     # 标记cube位置
-                    cube.position = (l_index, w_index, HEIGHT-(min_height+cube.height))
+                    cube.position = (
+                        l_index,
+                        w_index,
+                        HEIGHT - (min_height + cube.height),
+                    )
                     return True
         print_warning(f"obj {cube} can't put in.")
         return False
@@ -131,17 +135,16 @@ def main():
             # 当放入时，增加利用了的体积.
             if space.put_in(cube):
                 put_in_cubes.append(cube)
-            print(f"->{index} in {len(objs)} {index/len(objs)}% space usage: {space.usage_v/SPACE_V}%")
+            print(
+                f"->{index} in {len(objs)} {index/len(objs)}% space usage: {space.usage_v/SPACE_V}%"
+            )
     except KeyboardInterrupt:
         pass
-    print(
-        f"space usage:{space.usage_v} in {SPACE_V}  {space.usage_v/SPACE_V}%"
-    )
+    print(f"space usage:{space.usage_v} in {SPACE_V}  {space.usage_v/SPACE_V}%")
     with open(f"{os.path.basename(args.input_path)}_result_pos.txt", "w") as file:
         content = "\n".join([str(cube) for cube in put_in_cubes])
         file.write(content)
     print_warning(f"{args.input_path} handle done.")
-
 
 
 if __name__ == "__main__":

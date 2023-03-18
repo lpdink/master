@@ -60,18 +60,20 @@ def get_config(config_path):
 
 config = get_config(CONFIG_PATH)
 
+
 def abs_distance(dot1, dot2):
     x1, y1 = dot1
     x2, y2 = dot2
-    return np.power((x1-x2)**2+(y1-y2)**2 , 0.5)
+    return np.power((x1 - x2) ** 2 + (y1 - y2) ** 2, 0.5)
+
 
 def get_path_length(path):
     # 计算path长度
     if len(path) in [0, 1]:
         return 0
     rst = 0
-    for idx in range(len(path)-1):
-        rst += abs_distance(path[idx], path[idx+1])
+    for idx in range(len(path) - 1):
+        rst += abs_distance(path[idx], path[idx + 1])
     return rst
 
 

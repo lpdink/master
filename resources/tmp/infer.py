@@ -14,6 +14,7 @@ ckpt_path = f"/home/zhidan/zhidan/codes_Distill/train_output/PACS/230301_09-43-0
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
+
 def main():
     algorithm_class = ERM
     test_envs = [model_idx]  # 相当于先推model_idx
@@ -75,6 +76,7 @@ def main():
         print(f"准确率：{sum(predict_rst.argmax(1).numpy()==true_batch)/len(true_batch)}")
         breakpoint()
 
+
 def infer():
     algorithm_class = ERM
     input_lists = []
@@ -83,23 +85,30 @@ def infer():
     for idx in range(3):
         test_envs = [idx]
         dataset, in_splits, out_splits = get_dataset(
-        test_envs, config.args, config.hparams, algorithm_class
+            test_envs, config.args, config.hparams, algorithm_class
         )
         breakpoint()
         dataset_1 = in_splits[idx][0]
         dataset_2 = out_splits[idx][0]
 
-        batch_input_tensor_1 = [dataset_1[idx]["x"] for idx in range(len(dataset_1.keys))]
-        batch_input_tensor_2 = [dataset_2[idx]["x"] for idx in range(len(dataset_2.keys))]
-        batch_input_tensor = batch_input_tensor_1+batch_input_tensor_2
+        batch_input_tensor_1 = [
+            dataset_1[idx]["x"] for idx in range(len(dataset_1.keys))
+        ]
+        batch_input_tensor_2 = [
+            dataset_2[idx]["x"] for idx in range(len(dataset_2.keys))
+        ]
+        batch_input_tensor = batch_input_tensor_1 + batch_input_tensor_2
         batch_input_tensor = torch.stack(batch_input_tensor, 0)
         # breakpoint()
         true_batch_1 = [dataset_1[idx]["y"] for idx in range(len(dataset_1.keys))]
         true_batch_2 = [dataset_2[idx]["y"] for idx in range(len(dataset_2.keys))]
-        true_batch = torch.tensor(true_batch_1+true_batch_2)
+        true_batch = torch.tensor(true_batch_1 + true_batch_2)
         # np.concatenate()
         model = ERM(
-            dataset.input_shape, dataset.num_classes, num_domains=3, hparams=config.hparams
+            dataset.input_shape,
+            dataset.num_classes,
+            num_domains=3,
+            hparams=config.hparams,
         )
         # 载入模型
         ckpt_path = f"/home/zhidan/zhidan/codes_Distill/train_output/PACS/230301_09-43-01_exp_name/checkpoints/TE{idx}_5000.pth"
@@ -108,7 +117,9 @@ def infer():
         model.load_state_dict(ckpt["model_dict"])
         model.eval()
         with torch.no_grad():
-            predict_rst = model.predict(batch_input_tensor)# shape==[pic_nums, class_nums] like [2048, 7]
+            predict_rst = model.predict(
+                batch_input_tensor
+            )  # shape==[pic_nums, class_nums] like [2048, 7]
             # breakpoint()
         input_lists.append(batch_input_tensor)
         output_lists.append(true_batch)

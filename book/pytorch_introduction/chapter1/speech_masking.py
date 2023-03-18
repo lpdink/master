@@ -10,9 +10,9 @@ import soundfile
 
 def compute_PSD_matrix(audio, window_size):
     """
-	First, perform STFT.
-	Then, compute the PSD.
-	Last, normalize PSD.
+    First, perform STFT.
+    Then, compute the PSD.
+    Last, normalize PSD.
     """
     win = np.sqrt(8.0 / 3.0) * librosa.core.stft(audio, center=False)
     z = abs(win / window_size)
@@ -42,7 +42,7 @@ def quiet(f):
 
 def two_slops(bark_psd, delta_TM, bark_maskee):
     """
-	returns the masking threshold for each masker using two slopes as the spread function 
+    returns the masking threshold for each masker using two slopes as the spread function
     """
     Ts = []
     for tone_mask in range(bark_psd.shape[0]):
@@ -60,8 +60,7 @@ def two_slops(bark_psd, delta_TM, bark_maskee):
 
 
 def compute_th(PSD, barks, ATH, freqs):
-    """ returns the global masking threshold
-    """
+    """returns the global masking threshold"""
     # Identification of tonal maskers
     # find the index of maskers that are the local maxima
     length = len(PSD)
@@ -126,7 +125,7 @@ def compute_th(PSD, barks, ATH, freqs):
 
 def generate_th(audio, fs, window_size=2048):
     """
-	returns the masking threshold theta_xs and the max psd of the audio
+    returns the masking threshold theta_xs and the max psd of the audio
     """
     PSD, psd_max, maxk = compute_PSD_matrix(audio, window_size)
     freqs = librosa.core.fft_frequencies(sr=fs, n_fft=window_size)

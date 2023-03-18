@@ -6,67 +6,74 @@ import matplotlib.pylab as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils import config
 
+
 def score_function(x):
-    return 10*np.sin(5*x)+7*abs(x-5)+10
+    return 10 * np.sin(5 * x) + 7 * abs(x - 5) + 10
+
 
 def binary2decimal(pop):
     # 每行py个数，转为二进制
     _, py = pop.shape
-    mask = np.array([np.power(2, py-index) for index in range(1, py+1)])
-    rst = np.sum(pop*mask, axis=1)
-    return rst*10/np.sum(mask)
+    mask = np.array([np.power(2, py - index) for index in range(1, py + 1)])
+    rst = np.sum(pop * mask, axis=1)
+    return rst * 10 / np.sum(mask)
 
 
 def initpop(popsize, chromlength):
     pop = np.random.randint(0, 2, (popsize, chromlength))
     return pop
 
+
 def cal_objvalue(pop):
-    x=binary2decimal(pop)
+    x = binary2decimal(pop)
     return score_function(x)
+
 
 def selection(old_pop, fitvalue):
     px, _ = old_pop.shape
     total_fit = np.sum(fitvalue)
-    p_fitvalue = fitvalue/total_fit
+    p_fitvalue = fitvalue / total_fit
     p_fitvalue = np.cumsum(p_fitvalue)
     ms = np.sort(np.random.rand(px))
     fitin, newin = 0, 0
     new_pop = np.zeros_like(old_pop)
-    while newin<px:
-        if ms[newin]<p_fitvalue[fitin]:
+    while newin < px:
+        if ms[newin] < p_fitvalue[fitin]:
             new_pop[newin] = old_pop[fitin, :]
-            newin+=1
+            newin += 1
         else:
-            fitin+=1
+            fitin += 1
     return new_pop
+
 
 def crossover(old_pop, pc):
     px, py = old_pop.shape
     new_pop = np.ones_like(old_pop)
     for i in range(0, px, 2):
-        if np.random.rand()<pc:
+        if np.random.rand() < pc:
             cpoint = np.random.randint(1, py, 1)[0]
-            new_pop[i] = list(old_pop[i, :cpoint])+list(old_pop[i+1, cpoint:])
-            new_pop[i+1]=list(old_pop[i+1, :cpoint])+list(old_pop[i, cpoint:])
+            new_pop[i] = list(old_pop[i, :cpoint]) + list(old_pop[i + 1, cpoint:])
+            new_pop[i + 1] = list(old_pop[i + 1, :cpoint]) + list(old_pop[i, cpoint:])
         else:
-            new_pop[i]=old_pop[i, :]
-            new_pop[i+1]=old_pop[i+1, :]
+            new_pop[i] = old_pop[i, :]
+            new_pop[i + 1] = old_pop[i + 1, :]
     return new_pop
+
 
 def mutation(old_pop, pm):
     px, py = old_pop.shape
     new_pop = np.ones_like(old_pop)
     for i in range(px):
-        if(np.random.rand()<pm):
+        if np.random.rand() < pm:
             # 随机选一个点变异
             mpoint = np.random.randint(0, py, 1)[0]
-            new_pop[i]=old_pop[i, :]
-            new_pop[i, mpoint]^=1
+            new_pop[i] = old_pop[i, :]
+            new_pop[i, mpoint] ^= 1
         else:
-            new_pop[i]=old_pop[i, :]
+            new_pop[i] = old_pop[i, :]
 
     return new_pop
+
 
 def best(pop, fitvalue):
     max_index = fitvalue.argmax()
@@ -98,5 +105,6 @@ def main():
 
     # breakpoint(x2[0], bestfit)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

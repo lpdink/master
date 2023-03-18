@@ -133,7 +133,7 @@ def get_objs_from_json(json_path):
 @timer
 def main():
     space = Space()
-    objs = np.random.randint(1,200,(5,3))
+    objs = np.random.randint(1, 200, (5, 3))
     # objs = get_objs_from_json(INPUT_JSON)
     # breakpoint()
     # 逐个遍历输入

@@ -125,7 +125,7 @@ def _magphase(stfted, power):
         D_mag: 幅值矩阵
         D_phase: 相位矩阵
         两个矩阵的shape与stfted一致，但并非简单的6.2708445e-05-5.29952449e-05j的实数和虚数部分分离
-        D_mag其实是复数的模矩阵，phase = np.exp(1j * np.angle(D(F, T))) 
+        D_mag其实是复数的模矩阵，phase = np.exp(1j * np.angle(D(F, T)))
     """
     D_mag, D_phase = librosa.magphase(stfted, power=power)
     return D_mag, D_phase

@@ -64,7 +64,7 @@ class Line:
             这种情况下，分支和循环的优先级高于函数调用
         """
         type = None
-        line_end = line_idx # 分支和循环可能有多条语句，需要被视为一行处理
+        line_end = line_idx  # 分支和循环可能有多条语句，需要被视为一行处理
         if line.startswith("if ("):
             type = LineType.BRANCH
         elif line.startswith("return ") or line_idx in FUNC2LINE_END.values():
@@ -108,6 +108,7 @@ class Line:
     def _(self):
         pass
 
+
 class Path:
     def __init__(self, path) -> None:
         self.path = path
@@ -115,15 +116,16 @@ class Path:
     def expand(self):
         self.path.append(self.path[-1].analyze())
 
+
 def main():
     init_path = Path([Line.create_from_text(LINES[BEGIN_INDEX], BEGIN_INDEX)])
     paths = [init_path]
     while True:
         path_ptr = 0
-        while path_ptr<len(paths):
+        while path_ptr < len(paths):
             new_paths = deepcopy(paths)
             new_paths[path_ptr][-1]
-            path_ptr+=1
+            path_ptr += 1
         paths = new_paths
     pass
 

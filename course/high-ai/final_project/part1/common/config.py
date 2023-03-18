@@ -51,4 +51,5 @@ def get_config(config_path):
     data = json.loads(content)
     return Config(**data)
 
+
 hps = get_config(CONFIG_PATH)

@@ -44,7 +44,7 @@ class Factory:
                 if clazz is None:
                     logging.warning(f"can't find clazz {clazz}, instanced failed")
                     continue
-                if hasattr(obj, "args") and len(obj.args)>0:
+                if hasattr(obj, "args") and len(obj.args) > 0:
                     new_model = clazz(**obj.args)
                 else:
                     new_model = clazz()
@@ -64,5 +64,6 @@ class Factory:
         self.create_models_from_config(config)
         self.create_datasets_from_config(config)
         return self
+
 
 objfactory = Factory()
