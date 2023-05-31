@@ -1,0 +1,8 @@
+[project]
+name = "mpkg"
+version = "0.0.1"
+dependencies = []
+
+[project.scripts]
+command-hello = "mpkg:hello"
+command-goodbye = "mpkg:goodbye"
